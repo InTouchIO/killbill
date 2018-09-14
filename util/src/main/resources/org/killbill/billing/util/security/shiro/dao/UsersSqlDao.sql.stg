@@ -9,6 +9,9 @@ tableFields(prefix) ::= <<
 , <prefix>created_by
 , <prefix>updated_date
 , <prefix>updated_by
+, <prefix>name
+, <prefix>surname
+, <prefix>mobile_number
 >>
 
 allTableFields(prefix) ::= <<
@@ -26,6 +29,9 @@ tableValues() ::= <<
 , :createdBy
 , :updatedDate
 , :updatedBy
+, :name
+, :surname
+, :mobileNumber
 >>
 
 
