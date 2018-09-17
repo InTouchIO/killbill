@@ -74,7 +74,34 @@ public class DefaultUserDao implements UserDao {
                 if (userModelDao != null) {
                     throw new SecurityApiException(ErrorCode.SECURITY_USER_ALREADY_EXISTS, username);
                 }
-                usersSqlDao.create(new UserModelDao(username, hashedPasswordBase64, salt.toBase64(), createdDate, createdBy));
+               // usersSqlDao.create(new UserModelDao(username, hashedPasswordBase64, salt.toBase64(), createdDate, createdBy));
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public void insertUser(final String name, final String surname, final String mobileNumber, final String username, final String password, final List<String> roles, final String createdBy) throws SecurityApiException {
+        // New customised insert user method
+        final ByteSource salt = rng.nextBytes();
+        final String hashedPasswordBase64 = new SimpleHash(KillbillCredentialsMatcher.HASH_ALGORITHM_NAME,
+                                                           password, salt.toBase64(), securityConfig.getShiroNbHashIterations()).toBase64();
+
+        final DateTime createdDate = clock.getUTCNow();
+        inTransactionWithExceptionHandling(new TransactionCallback<Void>() {
+            @Override
+            public Void inTransaction(final Handle handle, final TransactionStatus status) throws Exception {
+                final UserRolesSqlDao userRolesSqlDao = handle.attach(UserRolesSqlDao.class);
+                for (final String role : roles) {
+                    userRolesSqlDao.create(new UserRolesModelDao(username, role, createdDate, createdBy));
+                }
+
+                final UsersSqlDao usersSqlDao = handle.attach(UsersSqlDao.class);
+                final UserModelDao userModelDao = usersSqlDao.getByUsername(username);
+                if (userModelDao != null) {
+                    throw new SecurityApiException(ErrorCode.SECURITY_USER_ALREADY_EXISTS, username);
+                }
+                usersSqlDao.create(new UserModelDao(name, surname, mobileNumber, username, hashedPasswordBase64, salt.toBase64(), createdDate, createdBy));
                 return null;
             }
         });

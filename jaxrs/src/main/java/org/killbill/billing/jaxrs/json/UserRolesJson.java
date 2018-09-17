@@ -28,6 +28,12 @@ import io.swagger.annotations.ApiModelProperty;
 public class UserRolesJson {
 
     @ApiModelProperty(required = true)
+    private final String name;
+    @ApiModelProperty(required = true)
+    private final String surname;
+    @ApiModelProperty(required = true)
+    private final String mobileNumber;
+    @ApiModelProperty(required = true)
     private final String username;
     @ApiModelProperty(required = true)
     private final String password;
@@ -35,13 +41,25 @@ public class UserRolesJson {
     private final List<String> roles;
 
     @JsonCreator
-    public UserRolesJson(@JsonProperty("username") final String username,
+    public UserRolesJson(@JsonProperty("name") final String name,
+                         @JsonProperty("surname") final String surname,
+                         @JsonProperty("mobileNumber") final String mobileNumber,
+                         @JsonProperty("username") final String username,
                          @JsonProperty("password") final String password,
                          @JsonProperty("roles") final List<String> roles) {
+        this.name = name;
+        this.surname = surname;
+        this.mobileNumber = mobileNumber;
         this.username = username;
         this.password = password;
         this.roles = roles;
     }
+
+    public String getName() { return name; }
+
+    public String getSurname() { return surname; }
+
+    public String getMobileNumber() {  return mobileNumber; }
 
     public String getUsername() {
         return username;

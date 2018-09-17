@@ -21,6 +21,7 @@ package org.killbill.billing.util.glue;
 import org.killbill.billing.platform.api.KillbillConfigSource;
 import org.killbill.billing.security.api.SecurityApi;
 import org.killbill.billing.util.config.definition.SecurityConfig;
+import org.killbill.billing.util.security.api.CustomSecurityApi;
 import org.killbill.billing.util.security.api.DefaultSecurityApi;
 import org.killbill.billing.util.security.api.DefaultSecurityService;
 import org.killbill.billing.util.security.api.SecurityService;
@@ -52,6 +53,7 @@ public class SecurityModule extends KillBillModule {
 
     private void installSecurityApi() {
         bind(SecurityApi.class).to(DefaultSecurityApi.class).asEagerSingleton();
+        bind(CustomSecurityApi.class).to(DefaultSecurityApi.class).asEagerSingleton();
     }
 
     protected void installSecurityService() {

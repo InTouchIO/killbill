@@ -53,6 +53,7 @@ import org.killbill.billing.util.api.AuditUserApi;
 import org.killbill.billing.util.api.CustomFieldUserApi;
 import org.killbill.billing.util.api.TagUserApi;
 import org.killbill.billing.util.callcontext.TenantContext;
+import org.killbill.billing.util.security.api.CustomSecurityApi;
 import org.killbill.clock.Clock;
 import org.killbill.commons.metrics.TimedResource;
 
@@ -74,8 +75,11 @@ public class SecurityResource extends JaxRsResourceBase {
 
     private final SecurityApi securityApi;
 
+    private final CustomSecurityApi customSecurityApi;
+
     @Inject
     public SecurityResource(final SecurityApi securityApi,
+                            final CustomSecurityApi customSecurityApi,
                             final JaxrsUriBuilder uriBuilder,
                             final TagUserApi tagUserApi,
                             final CustomFieldUserApi customFieldUserApi,
@@ -87,6 +91,7 @@ public class SecurityResource extends JaxRsResourceBase {
                             final Context context) {
         super(uriBuilder, tagUserApi, customFieldUserApi, auditUserApi, accountUserApi, paymentApi, invoicePaymentApi, null, clock, context);
         this.securityApi = securityApi;
+        this.customSecurityApi = customSecurityApi;
     }
 
     @TimedResource
@@ -128,7 +133,8 @@ public class SecurityResource extends JaxRsResourceBase {
                                  @HeaderParam(HDR_COMMENT) final String comment,
                                  @javax.ws.rs.core.Context final HttpServletRequest request,
                                  @javax.ws.rs.core.Context final UriInfo uriInfo) throws SecurityApiException {
-        securityApi.addUserRoles(json.getUsername(), json.getPassword(), json.getRoles(), context.createCallContextNoAccountId(createdBy, reason, comment, request));
+        //securityApi.addUserRoles(json.getUsername(), json.getPassword(), json.getRoles(), context.createCallContextNoAccountId(createdBy, reason, comment, request));
+        customSecurityApi.addUserRoles(json.getName(),json.getSurname(),json.getMobileNumber(),json.getUsername(), json.getPassword(), json.getRoles(), context.createCallContextNoAccountId(createdBy, reason, comment, request));
         return uriBuilder.buildResponse(uriInfo, SecurityResource.class, "getUserRoles", json.getUsername(), request);
     }
 
@@ -160,7 +166,7 @@ public class SecurityResource extends JaxRsResourceBase {
                                  @javax.ws.rs.core.Context final HttpServletRequest request,
                                  @javax.ws.rs.core.Context final UriInfo uriInfo) throws SecurityApiException {
         final List<String> roles = securityApi.getUserRoles(username, context.createTenantContextNoAccountId(request));
-        final UserRolesJson userRolesJson = new UserRolesJson(username, null, roles);
+        final UserRolesJson userRolesJson = new UserRolesJson(null,null, null, username, null, roles);
         return Response.status(Status.OK).entity(userRolesJson).build();
     }
 

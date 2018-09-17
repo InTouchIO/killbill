@@ -22,6 +22,9 @@ import org.joda.time.DateTime;
 public class UserModelDao {
 
     private Long recordId;
+    private String name;
+    private String surname;
+    private String mobileNumber;
     private String username;
     private String password;
     private String passwordSalt;
@@ -46,8 +49,27 @@ public class UserModelDao {
         this.updatedBy = updatedBy;
     }
 
+    public UserModelDao(Long recordId, final String name, final String surname, final String mobileNumber, String username, String password, String passwordSalt, Boolean isActive, DateTime createdDate, String createdBy, DateTime updatedDate, String updatedBy) {
+        this.recordId = recordId;
+        this.name = name;
+        this.surname = surname;
+        this.mobileNumber = mobileNumber;
+        this.username = username;
+        this.password = password;
+        this.passwordSalt = passwordSalt;
+        this.isActive = isActive;
+        this.createdDate = createdDate;
+        this.createdBy = createdBy;
+        this.updatedDate = updatedDate;
+        this.updatedBy = updatedBy;
+    }
+
     public UserModelDao(final String username, final String password, final String passwordSalt, final DateTime createdDate, final String createdBy) {
         this(-1L, username, password, passwordSalt, Boolean.TRUE, createdDate, createdBy, createdDate, createdBy);
+    }
+
+    public UserModelDao(final String name, final String surname, final String mobileNumber, final String username, final String password, final String passwordSalt, final DateTime createdDate, final String createdBy) {
+        this(-1L,   name,   surname,   mobileNumber,  username, password, passwordSalt, Boolean.TRUE, createdDate, createdBy, createdDate, createdBy);
     }
 
     public Long getRecordId() {
@@ -120,5 +142,29 @@ public class UserModelDao {
 
     public void setIsActive(final Boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(final String name) {
+        this.name = name;
+    }
+
+    public String getSurname() {
+        return surname;
+    }
+
+    public void setSurname(final String surname) {
+        this.surname = surname;
+    }
+
+    public String getMobileNumber() {
+        return mobileNumber;
+    }
+
+    public void setMobileNumber(final String mobileNumber) {
+        this.mobileNumber = mobileNumber;
     }
 }

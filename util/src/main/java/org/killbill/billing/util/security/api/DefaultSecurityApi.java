@@ -59,7 +59,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-public class DefaultSecurityApi implements SecurityApi {
+public class DefaultSecurityApi implements SecurityApi, CustomSecurityApi {
 
     private static final String[] allPermissions = new String[Permission.values().length];
 
@@ -315,5 +315,22 @@ public class DefaultSecurityApi implements SecurityApi {
             principals.add(username, killBillJdbcRealm.getName());
             killBillJdbcRealm.clearCachedAuthorizationInfo(principals);
         }
+    }
+
+    /**
+     * Add a user with roles in the Shiro store (JDBCRealm)
+     *
+     * @param name
+     * @param surname
+     * @param mobileNumber
+     * @param username      the username
+     * @param password the password (in clear)
+     * @param roles         the list of (existing) roles
+     * @param callContext       context (does not include tenant nor account info)
+     * @throws SecurityApiException
+     */
+    @Override
+    public void addUserRoles(final String name, final String surname, final String mobileNumber, final String username, final String password, final List<String> roles, final CallContext callContext) throws SecurityApiException {
+        userDao.insertUser(name,surname,mobileNumber,username, password, roles, callContext.getUserName());
     }
 }
