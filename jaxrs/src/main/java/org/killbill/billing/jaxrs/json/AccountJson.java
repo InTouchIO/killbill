@@ -19,7 +19,9 @@
 package org.killbill.billing.jaxrs.json;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -30,6 +32,7 @@ import org.killbill.billing.account.api.Account;
 import org.killbill.billing.account.api.MutableAccountData;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.util.audit.AccountAuditLogs;
+import org.killbill.billing.util.customfield.CustomField;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -65,6 +68,21 @@ public class AccountJson extends JsonBase {
     private final String notes;
     private final Boolean isMigrated;
 
+    //List of custom fields
+
+    private String title;
+    private String middleName;
+    private String lastName;
+    private String dob;
+    private String gender;
+    private String nationality;
+    private String iDNumber;
+    private String landline;
+    private String other;
+    private String suburb;
+
+
+
     public AccountJson(final Account account, final BigDecimal accountBalance, final BigDecimal accountCBA, @Nullable final AccountAuditLogs accountAuditLogs) {
         super(toAuditLogJson(accountAuditLogs == null ? null : accountAuditLogs.getAuditLogsForAccount()));
         this.accountCBA = accountCBA;
@@ -94,33 +112,33 @@ public class AccountJson extends JsonBase {
         this.isMigrated = account.isMigrated();
     }
 
-    @JsonCreator
-    public AccountJson(@JsonProperty("accountId") final UUID accountId,
-                       @JsonProperty("name") final String name,
-                       @JsonProperty("firstNameLength") final Integer firstNameLength,
-                       @JsonProperty("externalKey") final String externalKey,
-                       @JsonProperty("email") final String email,
-                       @JsonProperty("billCycleDayLocal") final Integer billCycleDayLocal,
-                       @JsonProperty("currency") final Currency currency,
-                       @JsonProperty("parentAccountId") final UUID parentAccountId,
-                       @JsonProperty("isPaymentDelegatedToParent") final Boolean isPaymentDelegatedToParent,
-                       @JsonProperty("paymentMethodId") final UUID paymentMethodId,
-                       @JsonProperty("referenceTime") final DateTime referenceTime,
-                       @JsonProperty("timeZone") final String timeZone,
-                       @JsonProperty("address1") final String address1,
-                       @JsonProperty("address2") final String address2,
-                       @JsonProperty("postalCode") final String postalCode,
-                       @JsonProperty("company") final String company,
-                       @JsonProperty("city") final String city,
-                       @JsonProperty("state") final String state,
-                       @JsonProperty("country") final String country,
-                       @JsonProperty("locale") final String locale,
-                       @JsonProperty("phone") final String phone,
-                       @JsonProperty("notes") final String notes,
-                       @JsonProperty("isMigrated") final Boolean isMigrated,
-                       @JsonProperty("accountBalance") final BigDecimal accountBalance,
-                       @JsonProperty("accountCBA") final BigDecimal accountCBA,
-                       @JsonProperty("auditLogs") @Nullable final List<AuditLogJson> auditLogs) {
+
+    public AccountJson( final UUID accountId,
+                       final String name,
+                       final Integer firstNameLength,
+                        final String externalKey,
+                        final String email,
+                        final Integer billCycleDayLocal,
+                        final Currency currency,
+                        final UUID parentAccountId,
+                        final Boolean isPaymentDelegatedToParent,
+                       final UUID paymentMethodId,
+                        final DateTime referenceTime,
+                        final String timeZone,
+                        final String address1,
+                        final String address2,
+                        final String postalCode,
+                        final String company,
+                        final String city,
+                         final String state,
+                        final String country,
+                        final String locale,
+                        final String phone,
+                        final String notes,
+                        final Boolean isMigrated,
+                        final BigDecimal accountBalance,
+                        final BigDecimal accountCBA,
+                       final List<AuditLogJson> auditLogs) {
         super(auditLogs);
         this.accountBalance = accountBalance;
         this.externalKey = externalKey;
@@ -147,6 +165,87 @@ public class AccountJson extends JsonBase {
         this.notes = notes;
         this.isMigrated = isMigrated;
         this.accountCBA = accountCBA;
+
+    }
+
+    @JsonCreator
+    public AccountJson(@JsonProperty("accountId") final UUID accountId,
+                       @JsonProperty("name") final String name,
+                       @JsonProperty("firstNameLength") final Integer firstNameLength,
+                       @JsonProperty("externalKey") final String externalKey,
+                       @JsonProperty("email") final String email,
+                       @JsonProperty("billCycleDayLocal") final Integer billCycleDayLocal,
+                       @JsonProperty("currency") final Currency currency,
+                       @JsonProperty("parentAccountId") final UUID parentAccountId,
+                       @JsonProperty("isPaymentDelegatedToParent") final Boolean isPaymentDelegatedToParent,
+                       @JsonProperty("paymentMethodId") final UUID paymentMethodId,
+                       @JsonProperty("referenceTime") final DateTime referenceTime,
+                       @JsonProperty("timeZone") final String timeZone,
+                       @JsonProperty("address1") final String address1,
+                       @JsonProperty("address2") final String address2,
+                       @JsonProperty("postalCode") final String postalCode,
+                       @JsonProperty("company") final String company,
+                       @JsonProperty("city") final String city,
+                       @JsonProperty("state") final String state,
+                       @JsonProperty("country") final String country,
+                       @JsonProperty("locale") final String locale,
+                       @JsonProperty("phone") final String phone,
+                       @JsonProperty("notes") final String notes,
+                       @JsonProperty("isMigrated") final Boolean isMigrated,
+                       @JsonProperty("accountBalance") final BigDecimal accountBalance,
+                       @JsonProperty("accountCBA") final BigDecimal accountCBA,
+                       @JsonProperty("auditLogs") @Nullable final List<AuditLogJson> auditLogs,
+                       /*List of custom fields*/
+                       @JsonProperty("title") @Nullable final String title,
+                       @JsonProperty("middleName") @Nullable final String middleName,
+                       @JsonProperty("lastName") @Nullable final String lastName,
+                       @JsonProperty("dob") @Nullable final String dob,
+                       @JsonProperty("gender") @Nullable final String gender,
+                       @JsonProperty("nationality") @Nullable final String nationality,
+                       @JsonProperty("iDNumber") @Nullable final String iDNumber,
+                       @JsonProperty("landline") @Nullable final String landline,
+                       @JsonProperty("other") @Nullable final String other,
+                       @JsonProperty("suburb") @Nullable final String suburb) {
+        super(auditLogs);
+        this.accountBalance = accountBalance;
+        this.externalKey = externalKey;
+        this.accountId = accountId;
+        this.name = name;
+        this.firstNameLength = firstNameLength;
+        this.email = email;
+        this.billCycleDayLocal = billCycleDayLocal;
+        this.currency = currency;
+        this.parentAccountId = parentAccountId;
+        this.isPaymentDelegatedToParent = isPaymentDelegatedToParent;
+        this.paymentMethodId = paymentMethodId;
+        this.referenceTime = referenceTime;
+        this.timeZone = timeZone;
+        this.address1 = address1;
+        this.address2 = address2;
+        this.postalCode = postalCode;
+        this.company = company;
+        this.city = city;
+        this.state = state;
+        this.country = country;
+        this.locale = locale;
+        this.phone = phone;
+        this.notes = notes;
+        this.isMigrated = isMigrated;
+        this.accountCBA = accountCBA;
+
+        /*List of custom fields*/
+
+        this.title = title;
+        this.middleName = middleName;
+        this.lastName = lastName;
+        this.dob = dob;
+        this.gender = gender;
+        this.nationality = nationality;
+        this.iDNumber = iDNumber;
+        this.landline = landline;
+        this.other = other;
+        this.suburb = suburb;
+
     }
 
     public Account toAccount(@Nullable final UUID accountId) {
@@ -302,6 +401,12 @@ public class AccountJson extends JsonBase {
         };
     }
 
+    public AccountCustomData toData(){
+        return new AccountCustomData(this.title,this.middleName,this.lastName,this.dob,this.gender, this.nationality,
+                                     this.iDNumber,this.landline,this.other,this.suburb);
+    }
+
+
     public BigDecimal getAccountBalance() {
         return accountBalance;
     }
@@ -402,6 +507,86 @@ public class AccountJson extends JsonBase {
     @JsonProperty("isMigrated")
     public Boolean isMigrated() {
         return isMigrated;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(final String title) {
+        this.title = title;
+    }
+
+    public String getMiddleName() {
+        return middleName;
+    }
+
+    public void setMiddleName(final String middleName) {
+        this.middleName = middleName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(final String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getDob() {
+        return dob;
+    }
+
+    public void setDob(final String dob) {
+        this.dob = dob;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(final String gender) {
+        this.gender = gender;
+    }
+
+    public String getNationality() {
+        return nationality;
+    }
+
+    public void setNationality(final String nationality) {
+        this.nationality = nationality;
+    }
+
+    public String getiDNumber() {
+        return iDNumber;
+    }
+
+    public void setiDNumber(final String iDNumber) {
+        this.iDNumber = iDNumber;
+    }
+
+    public String getLandline() {
+        return landline;
+    }
+
+    public void setLandline(final String landline) {
+        this.landline = landline;
+    }
+
+    public String getOther() {
+        return other;
+    }
+
+    public void setOther(final String other) {
+        this.other = other;
+    }
+
+    public String getSuburb() {
+        return suburb;
+    }
+
+    public void setSuburb(final String suburb) {
+        this.suburb = suburb;
     }
 
     @Override

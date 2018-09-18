@@ -24,8 +24,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -79,12 +83,14 @@ import org.killbill.billing.invoice.api.InvoiceItemType;
 import org.killbill.billing.invoice.api.InvoicePayment;
 import org.killbill.billing.invoice.api.InvoiceUserApi;
 import org.killbill.billing.jaxrs.JaxrsExecutors;
+import org.killbill.billing.jaxrs.json.AccountCustomData;
 import org.killbill.billing.jaxrs.json.AccountEmailJson;
 import org.killbill.billing.jaxrs.json.AccountJson;
 import org.killbill.billing.jaxrs.json.AccountTimelineJson;
 import org.killbill.billing.jaxrs.json.AuditLogJson;
 import org.killbill.billing.jaxrs.json.BlockingStateJson;
 import org.killbill.billing.jaxrs.json.BundleJson;
+import org.killbill.billing.jaxrs.json.CompanyJson;
 import org.killbill.billing.jaxrs.json.CustomFieldJson;
 import org.killbill.billing.jaxrs.json.InvoiceJson;
 import org.killbill.billing.jaxrs.json.InvoicePaymentJson;
@@ -215,7 +221,28 @@ public class AccountResource extends JaxRsResourceBase {
         final Account account = accountUserApi.getAccountById(accountId, tenantContext);
         final AccountAuditLogs accountAuditLogs = auditUserApi.getAccountAuditLogs(account.getId(), auditMode.getLevel(), tenantContext);
         final AccountJson accountJson = getAccount(account, accountWithBalance, accountWithBalanceAndCBA, accountAuditLogs, tenantContext);
-        return Response.status(Status.OK).entity(accountJson).build();
+        // retrieving custom fields from "custom fields" table
+        final List<CustomField> customFields  = customFieldUserApi.getCustomFieldsForObject(accountId, getObjectType(), context.createTenantContextWithAccountId(accountId, request));
+        return Response.status(Status.OK).entity(updateFromCustomField(accountJson,customFields)).build();
+    }
+
+    @TimedResource
+    @GET
+    @Path("company/{accountId:" + UUID_PATTERN + "}")
+    @Produces(APPLICATION_JSON)
+    @ApiOperation(value = "Retrieve an account by id", response = CompanyJson.class)
+    @ApiResponses(value = {@ApiResponse(code = 400, message = "Invalid account id supplied"),
+                           @ApiResponse(code = 404, message = "Account not found")})
+    public Response getCompany(@PathParam("accountId") final UUID accountId,
+                               @QueryParam(QUERY_ACCOUNT_WITH_BALANCE) @DefaultValue("false") final Boolean accountWithBalance,
+                               @QueryParam(QUERY_ACCOUNT_WITH_BALANCE_AND_CBA) @DefaultValue("false") final Boolean accountWithBalanceAndCBA,
+                               @QueryParam(QUERY_AUDIT) @DefaultValue("NONE") final AuditMode auditMode,
+                               @javax.ws.rs.core.Context final HttpServletRequest request) throws AccountApiException {
+        final TenantContext tenantContext = context.createTenantContextWithAccountId(accountId, request);
+        final Account account = accountUserApi.getAccountById(accountId, tenantContext);
+        final List<CustomField> customFields  = customFieldUserApi.getCustomFieldsForObject(accountId, getObjectType(), context.createTenantContextWithAccountId(accountId, request));
+        CompanyJson companyJson = CompanyJson.toCompanyJson(customFields);
+        return Response.status(Status.OK).entity(companyJson).build();
     }
 
     @TimedResource
@@ -240,7 +267,8 @@ public class AccountResource extends JaxRsResourceBase {
                                                     @Override
                                                     public AccountJson apply(final Account account) {
                                                         final AccountAuditLogs accountAuditLogs = auditUserApi.getAccountAuditLogs(account.getId(), auditMode.getLevel(), tenantContext);
-                                                        return getAccount(account, accountWithBalance, accountWithBalanceAndCBA, accountAuditLogs, tenantContext);
+                                                        final List<CustomField> customFields  = customFieldUserApi.getCustomFieldsForObject(account.getId(), getObjectType(), context.createTenantContextWithAccountId(account.getId(), request));
+                                                        return updateFromCustomField(getAccount(account, accountWithBalance, accountWithBalanceAndCBA, accountAuditLogs, tenantContext),customFields);
                                                     }
                                                 },
                                                 nextPageUri
@@ -341,7 +369,9 @@ public class AccountResource extends JaxRsResourceBase {
         final Account account = accountUserApi.getAccountByKey(externalKey, tenantContext);
         final AccountAuditLogs accountAuditLogs = auditUserApi.getAccountAuditLogs(account.getId(), auditMode.getLevel(), tenantContext);
         final AccountJson accountJson = getAccount(account, accountWithBalance, accountWithBalanceAndCBA, accountAuditLogs, tenantContext);
-        return Response.status(Status.OK).entity(accountJson).build();
+        // retrieving custom fields from "custom fields" table
+        final List<CustomField> customFields  = customFieldUserApi.getCustomFieldsForObject(account.getId(), getObjectType(), context.createTenantContextWithAccountId(account.getId(), request));
+        return Response.status(Status.OK).entity(updateFromCustomField(accountJson,customFields)).build();
     }
 
     private AccountJson getAccount(final Account account, final Boolean accountWithBalance, final Boolean accountWithBalanceAndCBA,
@@ -358,6 +388,25 @@ public class AccountResource extends JaxRsResourceBase {
         }
     }
 
+    // This method will be use to update addition account fiels saved in 'Custom Field' table
+    public AccountJson updateFromCustomField(AccountJson accountJson, List<CustomField> customFields){
+        Map<String,String> cfMap = new HashMap<String, String>();
+        for (CustomField cf : customFields){
+            cfMap.put(cf.getFieldName(),cf.getFieldValue());
+        }
+        accountJson.setTitle(cfMap.get("title"));
+        accountJson.setMiddleName(cfMap.get("middleName"));
+        accountJson.setLastName(cfMap.get("lastName"));
+        accountJson.setDob(cfMap.get("dob"));
+        accountJson.setGender(cfMap.get("gender"));
+        accountJson.setNationality(cfMap.get("nationality"));
+        accountJson.setiDNumber(cfMap.get("iDNumber"));
+        accountJson.setLandline(cfMap.get("landline"));
+        accountJson.setOther(cfMap.get("other"));
+        accountJson.setSuburb(cfMap.get("suburb"));
+        return accountJson;
+    }
+
     @TimedResource
     @POST
     @Consumes(APPLICATION_JSON)
@@ -370,12 +419,58 @@ public class AccountResource extends JaxRsResourceBase {
                                   @HeaderParam(HDR_REASON) final String reason,
                                   @HeaderParam(HDR_COMMENT) final String comment,
                                   @javax.ws.rs.core.Context final HttpServletRequest request,
-                                  @javax.ws.rs.core.Context final UriInfo uriInfo) throws AccountApiException {
+                                  @javax.ws.rs.core.Context final UriInfo uriInfo) throws AccountApiException, CustomFieldApiException {
         verifyNonNullOrEmpty(json, "AccountJson body should be specified");
 
         final AccountData data = json.toAccount(null);
+        final AccountCustomData customData = json.toData();
+
         final Account account = accountUserApi.createAccount(data, context.createCallContextNoAccountId(createdBy, reason, comment, request));
+
+        Map<String,String> customDataMap = new HashMap<String,String>();
+        customDataMap.put("title",customData.getTitle());
+        customDataMap.put("middleName",customData.getMiddleName() );
+        customDataMap.put("lastName",customData.getLastName());
+        customDataMap.put("dob",customData.getDob());
+        customDataMap.put("gender",customData.getGender());
+        customDataMap.put("nationality",customData.getNationality());
+        customDataMap.put("iDNumber",customData.getiDNumber());
+        customDataMap.put("landline",customData.getLandline());
+        customDataMap.put("other",customData.getOther());
+        customDataMap.put("suburb",customData.getSuburb());
+        final List<CustomFieldJson> customFields = new ArrayList<CustomFieldJson>();
+        for (Map.Entry<String, String> e : customDataMap.entrySet()) {
+            customFields.add(new CustomFieldJson(null,null,ObjectType.ACCOUNT,e.getKey(),e.getValue(),new ArrayList<AuditLogJson>()));
+        }
+
+        super.createCustomFields(account.getId(), customFields, context.createCallContextWithAccountId(account.getId(), createdBy, reason,
+                                                                                                 comment, request), uriInfo, request);
         return uriBuilder.buildResponse(uriInfo, AccountResource.class, "getAccount", account.getId(), request);
+    }
+
+    @TimedResource
+    @POST
+    @Path("company/{accountId:" + UUID_PATTERN + "}")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON)
+    @ApiOperation(value = "Add company details", response = CompanyJson.class)
+    @ApiResponses(value = {@ApiResponse(code = 201, message = "Company detail added successfully"),
+                           @ApiResponse(code = 400, message = "Invalid account data supplied")})
+    public Response addCompany(final CompanyJson json,
+                               @PathParam("accountId") final UUID accountId,
+                               @HeaderParam(HDR_CREATED_BY) final String createdBy,
+                               @HeaderParam(HDR_REASON) final String reason,
+                               @HeaderParam(HDR_COMMENT) final String comment,
+                               @javax.ws.rs.core.Context final HttpServletRequest request,
+                               @javax.ws.rs.core.Context final UriInfo uriInfo) throws AccountApiException, CustomFieldApiException {
+        verifyNonNullOrEmpty(json, "AccountJson body should be specified");
+
+        final TenantContext tenantContext = context.createTenantContextWithAccountId(accountId, request);
+
+        final Account account = accountUserApi.getAccountById(accountId, tenantContext);
+        super.createCustomFields(account.getId(), json.toCustomFieldList(), context.createCallContextWithAccountId(account.getId(), createdBy, reason,
+                                                                                                                          comment, request), uriInfo, request);
+        return uriBuilder.buildResponse(uriInfo, AccountResource.class, "getCompany", account.getId(), request);
     }
 
     @TimedResource
