@@ -19,25 +19,23 @@
 package org.killbill.billing.jaxrs.json;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import javax.annotation.Nullable;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.killbill.billing.ObjectType;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.account.api.MutableAccountData;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.util.audit.AccountAuditLogs;
-import org.killbill.billing.util.customfield.CustomField;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Strings;
 import io.swagger.annotations.ApiModel;
+import org.killbill.billing.util.customfield.CustomField;
 
 @ApiModel(value="Account", parent = JsonBase.class)
 public class AccountJson extends JsonBase {
@@ -76,10 +74,11 @@ public class AccountJson extends JsonBase {
     private String dob;
     private String gender;
     private String nationality;
-    private String iDNumber;
+    private String idNumber;
     private String landline;
     private String other;
     private String suburb;
+    private String uploadFile;
 
 
 
@@ -202,10 +201,11 @@ public class AccountJson extends JsonBase {
                        @JsonProperty("dob") @Nullable final String dob,
                        @JsonProperty("gender") @Nullable final String gender,
                        @JsonProperty("nationality") @Nullable final String nationality,
-                       @JsonProperty("iDNumber") @Nullable final String iDNumber,
+                       @JsonProperty("idNumber") @Nullable final String idNumber,
                        @JsonProperty("landline") @Nullable final String landline,
                        @JsonProperty("other") @Nullable final String other,
-                       @JsonProperty("suburb") @Nullable final String suburb) {
+                       @JsonProperty("suburb") @Nullable final String suburb,
+                       @JsonProperty("uploadFile") @Nullable final String uploadFile) {
         super(auditLogs);
         this.accountBalance = accountBalance;
         this.externalKey = externalKey;
@@ -241,10 +241,11 @@ public class AccountJson extends JsonBase {
         this.dob = dob;
         this.gender = gender;
         this.nationality = nationality;
-        this.iDNumber = iDNumber;
+        this.idNumber = idNumber;
         this.landline = landline;
         this.other = other;
         this.suburb = suburb;
+        this.uploadFile = uploadFile;
 
     }
 
@@ -401,9 +402,66 @@ public class AccountJson extends JsonBase {
         };
     }
 
-    public AccountCustomData toData(){
-        return new AccountCustomData(this.title,this.middleName,this.lastName,this.dob,this.gender, this.nationality,
-                                     this.iDNumber,this.landline,this.other,this.suburb);
+    public List<CustomFieldJson> toCustomFieldJson(){
+        Map<String,String> customDataMap = new HashMap<String,String>();
+        customDataMap.put("title",this.getTitle());
+        customDataMap.put("middleName",this.getMiddleName() );
+        customDataMap.put("lastName",this.getLastName());
+        customDataMap.put("dob",this.getDob());
+        customDataMap.put("gender",this.getGender());
+        customDataMap.put("nationality",this.getNationality());
+        customDataMap.put("idNumber",this.getIdNumber());
+        customDataMap.put("landline",this.getLandline());
+        customDataMap.put("other",this.getOther());
+        customDataMap.put("suburb",this.getSuburb());
+        customDataMap.put("uploadFile",this.getUploadFile());
+        final List<CustomFieldJson> customFields = new ArrayList<CustomFieldJson>();
+        for (Map.Entry<String, String> e : customDataMap.entrySet()) {
+            if(notNullAndNotEmpty(e.getValue())) customFields.add(new CustomFieldJson(null,null, ObjectType.ACCOUNT,e.getKey(),e.getValue(),new ArrayList<AuditLogJson>()));
+        }
+        return customFields;
+    }
+
+    public AccountJson setCustomField( List<CustomField> customFields){
+        Map<String,String> cfMap = new HashMap<String, String>();
+        for (CustomField cf : customFields){
+            cfMap.put(cf.getFieldName(),cf.getFieldValue());
+        }
+        this.setTitle(cfMap.get("title"));
+        this.setMiddleName(cfMap.get("middleName"));
+        this.setLastName(cfMap.get("lastName"));
+        this.setDob(cfMap.get("dob"));
+        this.setGender(cfMap.get("gender"));
+        this.setNationality(cfMap.get("nationality"));
+        this.setIdNumber(cfMap.get("idNumber"));
+        this.setLandline(cfMap.get("landline"));
+        this.setOther(cfMap.get("other"));
+        this.setSuburb(cfMap.get("suburb"));
+        this.setUploadFile(cfMap.get("uploadFile"));
+        return this;
+    }
+
+    public static AccountJson setCustomField(AccountJson accountJson, List<CustomField> customFields){
+        Map<String,String> cfMap = new HashMap<String, String>();
+        for (CustomField cf : customFields){
+            cfMap.put(cf.getFieldName(),cf.getFieldValue());
+        }
+        accountJson.setTitle(cfMap.get("title"));
+        accountJson.setMiddleName(cfMap.get("middleName"));
+        accountJson.setLastName(cfMap.get("lastName"));
+        accountJson.setDob(cfMap.get("dob"));
+        accountJson.setGender(cfMap.get("gender"));
+        accountJson.setNationality(cfMap.get("nationality"));
+        accountJson.setIdNumber(cfMap.get("idNumber"));
+        accountJson.setLandline(cfMap.get("landline"));
+        accountJson.setOther(cfMap.get("other"));
+        accountJson.setSuburb(cfMap.get("suburb"));
+        accountJson.setUploadFile(cfMap.get("uploadFile"));
+        return accountJson;
+    }
+
+    private Boolean notNullAndNotEmpty(String str){
+        return str != null && !str.isEmpty();
     }
 
 
@@ -557,14 +615,6 @@ public class AccountJson extends JsonBase {
         this.nationality = nationality;
     }
 
-    public String getiDNumber() {
-        return iDNumber;
-    }
-
-    public void setiDNumber(final String iDNumber) {
-        this.iDNumber = iDNumber;
-    }
-
     public String getLandline() {
         return landline;
     }
@@ -587,6 +637,22 @@ public class AccountJson extends JsonBase {
 
     public void setSuburb(final String suburb) {
         this.suburb = suburb;
+    }
+
+    public String getUploadFile() {
+        return uploadFile;
+    }
+
+    public void setUploadFile(String uploadFile) {
+        this.uploadFile = uploadFile;
+    }
+
+    public String getIdNumber() {
+        return idNumber;
+    }
+
+    public void setIdNumber(String idNumber) {
+        this.idNumber = idNumber;
     }
 
     @Override

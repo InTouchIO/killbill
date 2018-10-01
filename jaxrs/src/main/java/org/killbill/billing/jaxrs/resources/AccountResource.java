@@ -25,11 +25,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -83,22 +81,7 @@ import org.killbill.billing.invoice.api.InvoiceItemType;
 import org.killbill.billing.invoice.api.InvoicePayment;
 import org.killbill.billing.invoice.api.InvoiceUserApi;
 import org.killbill.billing.jaxrs.JaxrsExecutors;
-import org.killbill.billing.jaxrs.json.AccountCustomData;
-import org.killbill.billing.jaxrs.json.AccountEmailJson;
-import org.killbill.billing.jaxrs.json.AccountJson;
-import org.killbill.billing.jaxrs.json.AccountTimelineJson;
-import org.killbill.billing.jaxrs.json.AuditLogJson;
-import org.killbill.billing.jaxrs.json.BlockingStateJson;
-import org.killbill.billing.jaxrs.json.BundleJson;
-import org.killbill.billing.jaxrs.json.CompanyJson;
-import org.killbill.billing.jaxrs.json.CustomFieldJson;
-import org.killbill.billing.jaxrs.json.InvoiceJson;
-import org.killbill.billing.jaxrs.json.InvoicePaymentJson;
-import org.killbill.billing.jaxrs.json.OverdueStateJson;
-import org.killbill.billing.jaxrs.json.PaymentJson;
-import org.killbill.billing.jaxrs.json.PaymentMethodJson;
-import org.killbill.billing.jaxrs.json.PaymentTransactionJson;
-import org.killbill.billing.jaxrs.json.TagJson;
+import org.killbill.billing.jaxrs.json.*;
 import org.killbill.billing.jaxrs.util.Context;
 import org.killbill.billing.jaxrs.util.JaxrsUriBuilder;
 import org.killbill.billing.overdue.api.OverdueApi;
@@ -223,7 +206,7 @@ public class AccountResource extends JaxRsResourceBase {
         final AccountJson accountJson = getAccount(account, accountWithBalance, accountWithBalanceAndCBA, accountAuditLogs, tenantContext);
         // retrieving custom fields from "custom fields" table
         final List<CustomField> customFields  = customFieldUserApi.getCustomFieldsForObject(accountId, getObjectType(), context.createTenantContextWithAccountId(accountId, request));
-        return Response.status(Status.OK).entity(updateFromCustomField(accountJson,customFields)).build();
+        return Response.status(Status.OK).entity(accountJson.setCustomField(customFields)).build();
     }
 
     @TimedResource
@@ -247,6 +230,63 @@ public class AccountResource extends JaxRsResourceBase {
 
     @TimedResource
     @GET
+    @Path("/" + "paginationwithbundles")
+    @Produces(APPLICATION_JSON)
+    @ApiOperation(value = "List accounts", response = AccountJson.class, responseContainer = "List")
+    @ApiResponses(value = {})
+    public Response getAccountsWithBundles(@QueryParam(QUERY_SEARCH_OFFSET) @DefaultValue("0") final Long offset,
+                                @QueryParam(QUERY_SEARCH_LIMIT) @DefaultValue("100") final Long limit,
+                                @QueryParam(QUERY_BUNDLES_FILTER) final String bundlesFilter,
+                                @QueryParam(QUERY_ACCOUNT_WITH_BALANCE) @DefaultValue("false") final Boolean accountWithBalance,
+                                @QueryParam(QUERY_ACCOUNT_WITH_BALANCE_AND_CBA) @DefaultValue("false") final Boolean accountWithBalanceAndCBA,
+                                @QueryParam(QUERY_AUDIT) @DefaultValue("NONE") final AuditMode auditMode,
+                                @javax.ws.rs.core.Context final HttpServletRequest request) throws AccountApiException , SubscriptionApiException {
+        final TenantContext tenantContext = context.createTenantContextNoAccountId(request);
+        final Pagination<Account> accounts = accountUserApi.getAccounts(offset, limit, tenantContext);
+        final URI nextPageUri = uriBuilder.nextPage(AccountResource.class, "getAccounts", accounts.getNextOffset(), limit, ImmutableMap.<String, String>of(QUERY_ACCOUNT_WITH_BALANCE, accountWithBalance.toString(),
+                                                                                                                                                           QUERY_ACCOUNT_WITH_BALANCE_AND_CBA, accountWithBalanceAndCBA.toString(),
+                                                                                                                                                           QUERY_AUDIT, auditMode.getLevel().toString()));
+        return buildStreamingPaginationResponse(accounts,
+                                                new Function<Account, AccountJsonWithBundles>() {
+                                                    @Override
+                                                    public AccountJsonWithBundles apply(final Account account) {
+                                                        final AccountAuditLogs accountAuditLogs = auditUserApi.getAccountAuditLogs(account.getId(), auditMode.getLevel(), tenantContext);
+                                                        final List<CustomField> customFields  = customFieldUserApi.getCustomFieldsForObject(account.getId(), getObjectType(), context.createTenantContextWithAccountId(account.getId(), request));
+                                                        AccountJson accountJson = AccountJson.setCustomField(getAccount(account, accountWithBalance, accountWithBalanceAndCBA, accountAuditLogs, tenantContext),customFields);
+                                                        List<BundleJson> bundles = new ArrayList<BundleJson>();
+                                                        try {
+                                                            bundles.addAll(getBundles(account,tenantContext,accountAuditLogs,bundlesFilter));
+                                                        } catch (SubscriptionApiException e) {
+                                                            e.printStackTrace();
+                                                        }
+                                                        return new AccountJsonWithBundles(accountJson,bundles);
+                                                    }
+                                                },
+                                                nextPageUri
+                                               );
+    }
+
+    private Collection<BundleJson> getBundles(final Account account, final TenantContext tenantContext,final AccountAuditLogs accountAuditLogs, final String bundlesFilter) throws SubscriptionApiException {
+        final List<SubscriptionBundle> bundles = subscriptionApi.getSubscriptionBundlesForAccountId(account.getId(), tenantContext);
+
+        boolean filter = (null != bundlesFilter && !bundlesFilter.isEmpty());
+
+        return  Collections2.transform(
+                (filter) ? filterBundles(bundles, Arrays.asList(bundlesFilter.split(","))) : bundles, new Function<SubscriptionBundle, BundleJson>() {
+                    @Override
+                    public BundleJson apply(final SubscriptionBundle input) {
+                        try {
+                            return new BundleJson(input, account.getCurrency(), accountAuditLogs);
+                        } catch (final CatalogApiException e) {
+                            // Not the cleanest thing, but guava Api don't allow throw..
+                            throw new RuntimeException(e);
+                        }
+                    }
+                });
+    }
+
+    @TimedResource
+    @GET
     @Path("/" + PAGINATION)
     @Produces(APPLICATION_JSON)
     @ApiOperation(value = "List accounts", response = AccountJson.class, responseContainer = "List")
@@ -260,19 +300,19 @@ public class AccountResource extends JaxRsResourceBase {
         final TenantContext tenantContext = context.createTenantContextNoAccountId(request);
         final Pagination<Account> accounts = accountUserApi.getAccounts(offset, limit, tenantContext);
         final URI nextPageUri = uriBuilder.nextPage(AccountResource.class, "getAccounts", accounts.getNextOffset(), limit, ImmutableMap.<String, String>of(QUERY_ACCOUNT_WITH_BALANCE, accountWithBalance.toString(),
-                                                                                                                                                           QUERY_ACCOUNT_WITH_BALANCE_AND_CBA, accountWithBalanceAndCBA.toString(),
-                                                                                                                                                           QUERY_AUDIT, auditMode.getLevel().toString()));
+                QUERY_ACCOUNT_WITH_BALANCE_AND_CBA, accountWithBalanceAndCBA.toString(),
+                QUERY_AUDIT, auditMode.getLevel().toString()));
         return buildStreamingPaginationResponse(accounts,
-                                                new Function<Account, AccountJson>() {
-                                                    @Override
-                                                    public AccountJson apply(final Account account) {
-                                                        final AccountAuditLogs accountAuditLogs = auditUserApi.getAccountAuditLogs(account.getId(), auditMode.getLevel(), tenantContext);
-                                                        final List<CustomField> customFields  = customFieldUserApi.getCustomFieldsForObject(account.getId(), getObjectType(), context.createTenantContextWithAccountId(account.getId(), request));
-                                                        return updateFromCustomField(getAccount(account, accountWithBalance, accountWithBalanceAndCBA, accountAuditLogs, tenantContext),customFields);
-                                                    }
-                                                },
-                                                nextPageUri
-                                               );
+                new Function<Account, AccountJson>() {
+                    @Override
+                    public AccountJson apply(final Account account) {
+                        final AccountAuditLogs accountAuditLogs = auditUserApi.getAccountAuditLogs(account.getId(), auditMode.getLevel(), tenantContext);
+                        final List<CustomField> customFields  = customFieldUserApi.getCustomFieldsForObject(account.getId(), getObjectType(), context.createTenantContextWithAccountId(account.getId(), request));
+                        return AccountJson.setCustomField(getAccount(account, accountWithBalance, accountWithBalanceAndCBA, accountAuditLogs, tenantContext),customFields);
+                    }
+                },
+                nextPageUri
+        );
     }
 
     @TimedResource
@@ -371,7 +411,7 @@ public class AccountResource extends JaxRsResourceBase {
         final AccountJson accountJson = getAccount(account, accountWithBalance, accountWithBalanceAndCBA, accountAuditLogs, tenantContext);
         // retrieving custom fields from "custom fields" table
         final List<CustomField> customFields  = customFieldUserApi.getCustomFieldsForObject(account.getId(), getObjectType(), context.createTenantContextWithAccountId(account.getId(), request));
-        return Response.status(Status.OK).entity(updateFromCustomField(accountJson,customFields)).build();
+        return Response.status(Status.OK).entity(accountJson.setCustomField(customFields)).build();
     }
 
     private AccountJson getAccount(final Account account, final Boolean accountWithBalance, final Boolean accountWithBalanceAndCBA,
@@ -386,25 +426,6 @@ public class AccountResource extends JaxRsResourceBase {
         } else {
             return new AccountJson(account, null, null, auditLogs);
         }
-    }
-
-    // This method will be use to update addition account fiels saved in 'Custom Field' table
-    public AccountJson updateFromCustomField(AccountJson accountJson, List<CustomField> customFields){
-        Map<String,String> cfMap = new HashMap<String, String>();
-        for (CustomField cf : customFields){
-            cfMap.put(cf.getFieldName(),cf.getFieldValue());
-        }
-        accountJson.setTitle(cfMap.get("title"));
-        accountJson.setMiddleName(cfMap.get("middleName"));
-        accountJson.setLastName(cfMap.get("lastName"));
-        accountJson.setDob(cfMap.get("dob"));
-        accountJson.setGender(cfMap.get("gender"));
-        accountJson.setNationality(cfMap.get("nationality"));
-        accountJson.setiDNumber(cfMap.get("iDNumber"));
-        accountJson.setLandline(cfMap.get("landline"));
-        accountJson.setOther(cfMap.get("other"));
-        accountJson.setSuburb(cfMap.get("suburb"));
-        return accountJson;
     }
 
     @TimedResource
@@ -423,27 +444,11 @@ public class AccountResource extends JaxRsResourceBase {
         verifyNonNullOrEmpty(json, "AccountJson body should be specified");
 
         final AccountData data = json.toAccount(null);
-        final AccountCustomData customData = json.toData();
+        final List<CustomFieldJson> customData = json.toCustomFieldJson();
 
         final Account account = accountUserApi.createAccount(data, context.createCallContextNoAccountId(createdBy, reason, comment, request));
 
-        Map<String,String> customDataMap = new HashMap<String,String>();
-        customDataMap.put("title",customData.getTitle());
-        customDataMap.put("middleName",customData.getMiddleName() );
-        customDataMap.put("lastName",customData.getLastName());
-        customDataMap.put("dob",customData.getDob());
-        customDataMap.put("gender",customData.getGender());
-        customDataMap.put("nationality",customData.getNationality());
-        customDataMap.put("iDNumber",customData.getiDNumber());
-        customDataMap.put("landline",customData.getLandline());
-        customDataMap.put("other",customData.getOther());
-        customDataMap.put("suburb",customData.getSuburb());
-        final List<CustomFieldJson> customFields = new ArrayList<CustomFieldJson>();
-        for (Map.Entry<String, String> e : customDataMap.entrySet()) {
-            customFields.add(new CustomFieldJson(null,null,ObjectType.ACCOUNT,e.getKey(),e.getValue(),new ArrayList<AuditLogJson>()));
-        }
-
-        super.createCustomFields(account.getId(), customFields, context.createCallContextWithAccountId(account.getId(), createdBy, reason,
+        super.createCustomFields(account.getId(), customData, context.createCallContextWithAccountId(account.getId(), createdBy, reason,
                                                                                                  comment, request), uriInfo, request);
         return uriBuilder.buildResponse(uriInfo, AccountResource.class, "getAccount", account.getId(), request);
     }
@@ -475,6 +480,52 @@ public class AccountResource extends JaxRsResourceBase {
 
     @TimedResource
     @PUT
+    @Path("company/{accountId:" + UUID_PATTERN + "}")
+    @Produces(APPLICATION_JSON)
+    @ApiOperation(value = "Retrieve an account by id", response = CompanyJson.class)
+    @ApiResponses(value = {@ApiResponse(code = 400, message = "Invalid account id supplied"),
+            @ApiResponse(code = 404, message = "Account not found")})
+    public Response putCompany(final CompanyJson json,@PathParam("accountId") final UUID accountId,
+                               @HeaderParam(HDR_CREATED_BY) final String createdBy,
+                               @HeaderParam(HDR_REASON) final String reason,
+                               @HeaderParam(HDR_COMMENT) final String comment,
+                               @javax.ws.rs.core.Context final HttpServletRequest request,
+                               @javax.ws.rs.core.Context final UriInfo uriInfo) throws AccountApiException, CustomFieldApiException {
+        final TenantContext tenantContext = context.createTenantContextWithAccountId(accountId, request);
+        final Account account = accountUserApi.getAccountById(accountId, tenantContext);
+        final List<CustomField> customFields  = customFieldUserApi.getCustomFieldsForObject(accountId, getObjectType(), context.createTenantContextWithAccountId(accountId, request));
+        final List<String> names = ImmutableList.<String>of("companyRegisteredName",
+                "companyRegistrationNumber",
+                "companyType",
+                "companyIndustry",
+                "companyVATRegistrationNumber",
+                "companyWebsite",
+                "companyBillableDomain",
+                "companyMobile",
+                "companyLandLine",
+                "companyOther",
+                "companyAddress1",
+                "companyAddress2",
+                "companySuburb",
+                "companyCity",
+                "companyCountry",
+                "companyProvince",
+                "companyNotes",
+                "companyUploadFile");
+        final List<UUID> uuids = new ArrayList();
+        for (CustomField cf : customFields){
+            if(names.contains(cf.getFieldName())) uuids.add(cf.getId());
+        }
+        super.deleteCustomFields(accountId,uuids,context.createCallContextWithAccountId(account.getId(), createdBy, reason,
+                comment, request));
+        super.createCustomFields(account.getId(), json.toCustomFieldList(), context.createCallContextWithAccountId(account.getId(), createdBy, reason,
+                comment, request), uriInfo, request);
+        return uriBuilder.buildResponse(uriInfo, AccountResource.class, "getCompany", account.getId(), request);
+    }
+
+
+    @TimedResource
+    @PUT
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON)
     @Path("/{accountId:" + UUID_PATTERN + "}")
@@ -487,12 +538,35 @@ public class AccountResource extends JaxRsResourceBase {
                                   @HeaderParam(HDR_CREATED_BY) final String createdBy,
                                   @HeaderParam(HDR_REASON) final String reason,
                                   @HeaderParam(HDR_COMMENT) final String comment,
-                                  @javax.ws.rs.core.Context final HttpServletRequest request) throws AccountApiException {
+                                  @javax.ws.rs.core.Context final HttpServletRequest request,
+                                  @javax.ws.rs.core.Context final UriInfo uriInfo) throws AccountApiException, CustomFieldApiException {
         verifyNonNullOrEmpty(json, "AccountJson body should be specified");
 
         final Account data = json.toAccount(accountId);
+        final List<CustomFieldJson> customFieldData = json.toCustomFieldJson();
+        final List<CustomField> customFields  = customFieldUserApi.getCustomFieldsForObject(accountId, getObjectType(), context.createTenantContextWithAccountId(accountId, request));
+        final List<String> names = ImmutableList.<String>of(
+                "title",
+                "middleName",
+                "lastName",
+                "dob",
+                "gender",
+                "nationality",
+                "idNumber",
+                "landline",
+                "other",
+                "suburb",
+                "uploadFile");
+        final List<UUID> uuids = new ArrayList();
+        for (CustomField cf : customFields){
+            if(names.contains(cf.getFieldName())) uuids.add(cf.getId());
+        }
         if (treatNullValueAsReset) {
             accountUserApi.updateAccount(data, context.createCallContextWithAccountId(accountId, createdBy, reason, comment, request));
+            super.deleteCustomFields(accountId,uuids,context.createCallContextWithAccountId(accountId, createdBy, reason,
+                    comment, request));
+            super.createCustomFields(accountId, customFieldData, context.createCallContextWithAccountId(accountId, createdBy, reason,
+                    comment, request), uriInfo, request);
         } else {
             accountUserApi.updateAccount(accountId, data, context.createCallContextWithAccountId(accountId, createdBy, reason, comment, request));
         }

@@ -279,6 +279,18 @@ public class DefaultUserDao implements UserDao {
         });
     }
 
+    @Override
+    public UserModelDao getByUsername(final String username) throws SecurityApiException {
+        return dbi.inTransaction(new TransactionCallback<UserModelDao>() {
+            @Override
+            public UserModelDao inTransaction(final Handle handle, final TransactionStatus status) throws Exception {
+                final UsersSqlDao usersSqlDao = handle.attach(UsersSqlDao.class);
+                final UserModelDao userModelDao = usersSqlDao.getByUsername(username);
+                return userModelDao;
+            }
+        });
+    }
+
     private <T> T inTransactionWithExceptionHandling(final TransactionCallback<T> callback) throws SecurityApiException {
         // Similar to EntitySqlDaoTransactionalJdbiWrapper#execute
         try {

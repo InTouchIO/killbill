@@ -23,15 +23,7 @@ import java.util.Set;
 
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
@@ -54,6 +46,7 @@ import org.killbill.billing.util.api.CustomFieldUserApi;
 import org.killbill.billing.util.api.TagUserApi;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.billing.util.security.api.CustomSecurityApi;
+import org.killbill.billing.util.security.shiro.dao.UserModelDao;
 import org.killbill.clock.Clock;
 import org.killbill.commons.metrics.TimedResource;
 
@@ -118,6 +111,22 @@ public class SecurityResource extends JaxRsResourceBase {
         final Subject subject = SecurityUtils.getSubject();
         final SubjectJson subjectJson = new SubjectJson(subject);
         return Response.status(Status.OK).entity(subjectJson).build();
+    }
+
+    @TimedResource
+    @GET
+    @Path("/user")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON)
+    @ApiOperation(value = "Get user information", response = UserModelDao.class)
+    @ApiResponses(value = {@ApiResponse(code = 201, message = "User role created successfully")})
+    public Response getByUsername(@QueryParam("username") final String username,
+                                 @HeaderParam(HDR_REASON) final String reason,
+                                 @HeaderParam(HDR_COMMENT) final String comment,
+                                 @javax.ws.rs.core.Context final HttpServletRequest request,
+                                 @javax.ws.rs.core.Context final UriInfo uriInfo) throws SecurityApiException {
+        UserModelDao userModelDao = customSecurityApi.getByUsername(username);
+        return Response.status(Status.OK).entity(userModelDao).build();
     }
 
     @TimedResource

@@ -22,6 +22,7 @@ import java.util.List;
 import org.killbill.billing.security.RequiresPermissions;
 import org.killbill.billing.security.SecurityApiException;
 import org.killbill.billing.util.callcontext.CallContext;
+import org.killbill.billing.util.security.shiro.dao.UserModelDao;
 
 import static org.killbill.billing.security.Permission.USER_CAN_CREATE;
 
@@ -38,5 +39,11 @@ public interface CustomSecurityApi {
      */
     @RequiresPermissions(USER_CAN_CREATE)
     public void addUserRoles(String name, String surname, String mobileNumber, String username, String clearPassword, List<String> roles, CallContext context) throws SecurityApiException;
+
+
+    /**
+     * @param username
+     */
+    public UserModelDao getByUsername(String username) throws SecurityApiException;
 
 }

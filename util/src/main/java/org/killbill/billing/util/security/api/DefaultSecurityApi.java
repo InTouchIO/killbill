@@ -46,6 +46,7 @@ import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.billing.util.security.shiro.dao.RolesPermissionsModelDao;
 import org.killbill.billing.util.security.shiro.dao.UserDao;
+import org.killbill.billing.util.security.shiro.dao.UserModelDao;
 import org.killbill.billing.util.security.shiro.dao.UserRolesModelDao;
 import org.killbill.billing.util.security.shiro.realm.KillBillJdbcRealm;
 
@@ -332,5 +333,13 @@ public class DefaultSecurityApi implements SecurityApi, CustomSecurityApi {
     @Override
     public void addUserRoles(final String name, final String surname, final String mobileNumber, final String username, final String password, final List<String> roles, final CallContext callContext) throws SecurityApiException {
         userDao.insertUser(name,surname,mobileNumber,username, password, roles, callContext.getUserName());
+    }
+
+    /**
+     * @param username
+     */
+    @Override
+    public UserModelDao getByUsername(String username) throws SecurityApiException {
+        return userDao.getByUsername(username);
     }
 }

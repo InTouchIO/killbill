@@ -40,4 +40,6 @@ public interface UserDao {
     public void updateUserRoles(String username, List<String> roles, String createdBy) throws SecurityApiException;
 
     public void invalidateUser(String username, String createdBy) throws SecurityApiException;
+
+    public UserModelDao getByUsername(String username) throws SecurityApiException;
 }

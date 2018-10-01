@@ -165,9 +165,13 @@ public class CompanyJson extends JsonBase {
         customDataMap.put("companyUploadFile", this.getCompanyUploadFile());
         final List<CustomFieldJson> customFields = new ArrayList<CustomFieldJson>();
         for (Map.Entry<String, String> e : customDataMap.entrySet()) {
-            customFields.add(new CustomFieldJson(null, null, ObjectType.ACCOUNT, e.getKey(), e.getValue(), this.getAuditLogs()));
+            if(notNullAndNotEmpty(e.getValue())) customFields.add(new CustomFieldJson(null, null, ObjectType.ACCOUNT, e.getKey(), e.getValue(), this.getAuditLogs()));
         }
         return customFields;
+    }
+
+    private Boolean notNullAndNotEmpty(String str){
+        return str != null && !str.isEmpty();
     }
 
     public static CompanyJson toCompanyJson(List<CustomField> customFields) {
