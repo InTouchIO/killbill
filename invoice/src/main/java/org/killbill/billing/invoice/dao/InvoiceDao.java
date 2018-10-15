@@ -201,6 +201,16 @@ public interface InvoiceDao extends EntityDao<InvoiceModelDao, Invoice, InvoiceA
     void updateInvoiceItemAmount(UUID invoiceItemId, BigDecimal amount, InternalCallContext context) throws InvoiceApiException;
 
     /**
+     *
+     * @param invoiceItemId
+     * @param quantity
+     * @param amount
+     * @param context
+     * @throws InvoiceApiException
+     */
+    void adjustInvoiceItemsQuantityById(final UUID invoiceItemId, final Integer quantity, final String description, final BigDecimal amount, final InternalTenantContext context) throws InvoiceApiException;
+
+    /**
      * Move a given child credit to the parent level
      *
      * @param childAccount the child account

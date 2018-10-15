@@ -23,12 +23,7 @@ import org.killbill.billing.invoice.InvoiceDispatcher;
 import org.killbill.billing.invoice.InvoiceListener;
 import org.killbill.billing.invoice.InvoiceTagHandler;
 import org.killbill.billing.invoice.ParkedAccountsManager;
-import org.killbill.billing.invoice.api.DefaultInvoiceService;
-import org.killbill.billing.invoice.api.InvoiceApiHelper;
-import org.killbill.billing.invoice.api.InvoiceInternalApi;
-import org.killbill.billing.invoice.api.InvoiceListenerService;
-import org.killbill.billing.invoice.api.InvoiceService;
-import org.killbill.billing.invoice.api.InvoiceUserApi;
+import org.killbill.billing.invoice.api.*;
 import org.killbill.billing.invoice.api.formatters.InvoiceFormatterFactory;
 import org.killbill.billing.invoice.api.formatters.ResourceBundleFactory;
 import org.killbill.billing.invoice.api.svcs.DefaultInvoiceInternalApi;
@@ -76,6 +71,7 @@ public class DefaultInvoiceModule extends KillBillModule implements InvoiceModul
     @Override
     public void installInvoiceUserApi() {
         bind(InvoiceUserApi.class).to(DefaultInvoiceUserApi.class).asEagerSingleton();
+        bind(CustomInvoiceUserApi.class).to(DefaultInvoiceUserApi.class).asEagerSingleton();
     }
 
     @Override

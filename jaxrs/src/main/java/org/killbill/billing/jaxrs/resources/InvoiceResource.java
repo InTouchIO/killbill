@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -64,19 +65,8 @@ import org.killbill.billing.catalog.api.ProductCategory;
 import org.killbill.billing.entitlement.api.EntitlementSpecifier;
 import org.killbill.billing.entitlement.api.SubscriptionApiException;
 import org.killbill.billing.entitlement.api.SubscriptionEventType;
-import org.killbill.billing.invoice.api.DryRunArguments;
-import org.killbill.billing.invoice.api.DryRunType;
-import org.killbill.billing.invoice.api.Invoice;
-import org.killbill.billing.invoice.api.InvoiceApiException;
-import org.killbill.billing.invoice.api.InvoiceItem;
-import org.killbill.billing.invoice.api.InvoicePayment;
-import org.killbill.billing.invoice.api.InvoiceUserApi;
-import org.killbill.billing.jaxrs.json.CustomFieldJson;
-import org.killbill.billing.jaxrs.json.InvoiceDryRunJson;
-import org.killbill.billing.jaxrs.json.InvoiceItemJson;
-import org.killbill.billing.jaxrs.json.InvoiceJson;
-import org.killbill.billing.jaxrs.json.InvoicePaymentJson;
-import org.killbill.billing.jaxrs.json.TagJson;
+import org.killbill.billing.invoice.api.*;
+import org.killbill.billing.jaxrs.json.*;
 import org.killbill.billing.jaxrs.util.Context;
 import org.killbill.billing.jaxrs.util.JaxrsUriBuilder;
 import org.killbill.billing.payment.api.InvoicePaymentApi;
@@ -132,6 +122,7 @@ public class InvoiceResource extends JaxRsResourceBase {
     private static final String ID_PARAM_NAME = "invoiceId";
     private static final String LOCALE_PARAM_NAME = "locale";
 
+    private final CustomInvoiceUserApi customInvoiceUserApi;
     private final InvoiceUserApi invoiceApi;
     private final TenantUserApi tenantApi;
     private final Locale defaultLocale;
@@ -146,6 +137,7 @@ public class InvoiceResource extends JaxRsResourceBase {
     @Inject
     public InvoiceResource(final AccountUserApi accountUserApi,
                            final InvoiceUserApi invoiceApi,
+                           final CustomInvoiceUserApi customInvoiceUserApi,
                            final PaymentApi paymentApi,
                            final InvoicePaymentApi invoicePaymentApi,
                            final Clock clock,
@@ -156,6 +148,7 @@ public class InvoiceResource extends JaxRsResourceBase {
                            final TenantUserApi tenantApi,
                            final Context context) {
         super(uriBuilder, tagUserApi, customFieldUserApi, auditUserApi, accountUserApi, paymentApi, invoicePaymentApi, null, clock, context);
+        this.customInvoiceUserApi = customInvoiceUserApi;
         this.invoiceApi = invoiceApi;
         this.tenantApi = tenantApi;
         this.defaultLocale = Locale.getDefault();
@@ -183,6 +176,49 @@ public class InvoiceResource extends JaxRsResourceBase {
         final AccountAuditLogs accountAuditLogs = auditUserApi.getAccountAuditLogs(invoice.getAccountId(), auditMode.getLevel(), tenantContext);
 
         final InvoiceJson json = new InvoiceJson(invoice, withItems, childInvoiceItems, accountAuditLogs);
+        return Response.status(Status.OK).entity(json).build();
+    }
+
+    @TimedResource
+    @POST
+    @Path("adjust/invoiceitemquantitybyid")
+    @Produces(APPLICATION_JSON)
+    @ApiOperation(value = "Adujust quantity of an invoice Item by id", response = InvoiceJson.class)
+    @ApiResponses(value = {@ApiResponse(code = 400, message = "Invalid invoice id supplied"),
+            @ApiResponse(code = 404, message = "Invoice not found")})
+    public Response adjustInvoiceItemQuantity( final AdjustInvoiceItemsJson adjustInvoiceItemsJson,
+                               @QueryParam(QUERY_AUDIT) @DefaultValue("NONE") final AuditMode auditMode,
+                               @HeaderParam(HDR_CREATED_BY) final String createdBy,
+                               @HeaderParam(HDR_REASON) final String reason,
+                               @HeaderParam(HDR_COMMENT) final String comment,
+                               @javax.ws.rs.core.Context final HttpServletRequest request) throws InvoiceApiException {
+        final boolean withItems = true;
+        final TenantContext tenantContext = context.createTenantContextNoAccountId(request);
+        final Invoice invoice = invoiceApi.getInvoiceByInvoiceItem(adjustInvoiceItemsJson.getInvoiceItemId(), tenantContext);
+        if (invoice == null) {
+            throw new InvoiceApiException(ErrorCode.INVOICE_NOT_FOUND, adjustInvoiceItemsJson.getInvoiceItemId());
+        }else if (InvoiceStatus.COMMITTED.equals(invoice.getStatus())) {
+            throw new InvoiceApiException(ErrorCode.INVOICE_ALREADY_COMMITTED, adjustInvoiceItemsJson.getInvoiceItemId());
+        }
+
+        //final CallContext callContext = context.createCallContextWithAccountId(adjustInvoiceItemsJson.getAccountId(), createdBy, reason, comment, request);
+        final List<InvoiceItem> childInvoiceItems = withItems ? invoiceApi.getInvoiceItemsByParentInvoice(invoice.getId(), tenantContext) : null;
+        if(invoice.getInvoiceItems() != null){
+            for(InvoiceItem iItem : invoice.getInvoiceItems()){
+                if(iItem.getId().equals(adjustInvoiceItemsJson.getInvoiceItemId())){
+                    if(!iItem.getInvoiceItemType().equals(InvoiceItemType.EXTERNAL_CHARGE)){
+                        throw new InvoiceApiException(ErrorCode.valueOf("Only Invoice Item of type "+InvoiceItemType.EXTERNAL_CHARGE+" can be adjusted."), adjustInvoiceItemsJson.getInvoiceItemId());
+                    }else if(adjustInvoiceItemsJson.getQuantity()<=0){
+                        throw new InvoiceApiException(ErrorCode.valueOf("Quantity must be greater than zero ."), adjustInvoiceItemsJson.getInvoiceItemId());
+                    }
+                    String desc = adjustInvoiceItemsJson.getDescription() != null ? adjustInvoiceItemsJson.getDescription() : iItem.getDescription();
+                    customInvoiceUserApi.adjustInvoiceItemsQuantityById(iItem,adjustInvoiceItemsJson.getQuantity(),desc,tenantContext);
+                }
+            }
+        }
+        final AccountAuditLogs accountAuditLogs = auditUserApi.getAccountAuditLogs(invoice.getAccountId(), auditMode.getLevel(), tenantContext);
+        final Invoice invoiceUpdate = invoiceApi.getInvoiceByInvoiceItem(adjustInvoiceItemsJson.getInvoiceItemId(), tenantContext);
+        final InvoiceJson json = new InvoiceJson(invoiceUpdate, withItems, childInvoiceItems, accountAuditLogs);
         return Response.status(Status.OK).entity(json).build();
     }
 

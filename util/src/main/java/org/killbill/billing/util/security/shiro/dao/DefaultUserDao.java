@@ -291,6 +291,19 @@ public class DefaultUserDao implements UserDao {
         });
     }
 
+    @Override
+    public void updateEmailConfig(final String username, final String imapUsername, final String imapPassword, final String imapHost, final String createdBy) throws SecurityApiException {
+        inTransactionWithExceptionHandling(new TransactionCallback<Void>() {
+            @Override
+            public Void inTransaction(final Handle handle, final TransactionStatus status) throws Exception {
+                final UsersSqlDao usersSqlDao = handle.attach(UsersSqlDao.class);
+                final DateTime updatedDate = clock.getUTCNow();
+                usersSqlDao.updateEmailConfig(username,imapUsername,imapPassword,imapHost, updatedDate.toDate(),createdBy);
+                return null;
+            }
+        });
+    }
+
     private <T> T inTransactionWithExceptionHandling(final TransactionCallback<T> callback) throws SecurityApiException {
         // Similar to EntitySqlDaoTransactionalJdbiWrapper#execute
         try {

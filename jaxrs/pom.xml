@@ -195,5 +195,9 @@
             <artifactId>testng</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.kill-bill.billing</groupId>
+            <artifactId>killbill-invoice</artifactId>
+        </dependency>
     </dependencies>
 </project>

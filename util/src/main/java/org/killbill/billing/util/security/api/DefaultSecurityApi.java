@@ -342,4 +342,17 @@ public class DefaultSecurityApi implements SecurityApi, CustomSecurityApi {
     public UserModelDao getByUsername(String username) throws SecurityApiException {
         return userDao.getByUsername(username);
     }
+
+    /**
+     * @param username
+     * @param imapUsername
+     * @param imapPassword
+     * @param imapHost
+     * @param createdBy
+     * @throws SecurityApiException
+     */
+    @Override
+    public void updateEmailConfig(String username, String imapUsername, String imapPassword, String imapHost, String createdBy) throws SecurityApiException {
+        userDao.updateEmailConfig( username,  imapUsername,  imapPassword,  imapHost,  createdBy);
+    }
 }

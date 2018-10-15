@@ -46,4 +46,15 @@ public interface CustomSecurityApi {
      */
     public UserModelDao getByUsername(String username) throws SecurityApiException;
 
+    /**
+     * 
+     * @param username
+     * @param imapUsername
+     * @param imapPassword
+     * @param imapHost
+     * @param createdBy
+     * @throws SecurityApiException
+     */
+    public void updateEmailConfig( String username, String imapUsername, String imapPassword, String imapHost, String createdBy) throws SecurityApiException;
+
 }

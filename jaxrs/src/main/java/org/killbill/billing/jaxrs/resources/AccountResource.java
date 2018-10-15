@@ -115,6 +115,7 @@ import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.billing.util.config.definition.JaxrsConfig;
 import org.killbill.billing.util.config.definition.PaymentConfig;
 import org.killbill.billing.util.customfield.CustomField;
+import org.killbill.billing.util.customfield.StringCustomField;
 import org.killbill.billing.util.entity.Pagination;
 import org.killbill.billing.util.tag.ControlTagType;
 import org.killbill.billing.util.tag.Tag;
@@ -485,7 +486,7 @@ public class AccountResource extends JaxRsResourceBase {
     @ApiOperation(value = "Retrieve an account by id", response = CompanyJson.class)
     @ApiResponses(value = {@ApiResponse(code = 400, message = "Invalid account id supplied"),
             @ApiResponse(code = 404, message = "Account not found")})
-    public Response putCompany(final CompanyJson json,@PathParam("accountId") final UUID accountId,
+    public Response updateCompany(final CompanyJson json,@PathParam("accountId") final UUID accountId,
                                @HeaderParam(HDR_CREATED_BY) final String createdBy,
                                @HeaderParam(HDR_REASON) final String reason,
                                @HeaderParam(HDR_COMMENT) final String comment,
@@ -513,13 +514,30 @@ public class AccountResource extends JaxRsResourceBase {
                 "companyNotes",
                 "companyUploadFile");
         final List<UUID> uuids = new ArrayList();
+        final List<CustomField> persistantCustomFields  = new ArrayList<CustomField>();
         for (CustomField cf : customFields){
-            if(names.contains(cf.getFieldName())) uuids.add(cf.getId());
+            for (String name: names) {
+                if(name.equals(cf.getFieldName().toString())) persistantCustomFields.add(cf);
+            }
         }
-        super.deleteCustomFields(accountId,uuids,context.createCallContextWithAccountId(account.getId(), createdBy, reason,
+        for (CustomField cf : persistantCustomFields){
+            for (String name: names) {
+                if(name.equals(cf.getFieldName().toString())) uuids.add(cf.getId());
+            }
+        }
+        if(uuids.size() > 0){
+            super.deleteCustomFields(accountId,uuids,context.createCallContextWithAccountId(account.getId(), createdBy, reason,
+                    comment, request));
+        }
+        List<CustomField> newCustomFields = new ArrayList<CustomField>();
+        for (CustomFieldJson cur : json.toCustomFieldList()){
+            verifyNonNullOrEmpty(cur.getName(), "CustomFieldJson name needs to be set");
+            verifyNonNullOrEmpty(cur.getValue(), "CustomFieldJson value needs to be set");
+            newCustomFields.add(new StringCustomField(cur.getName(), cur.getValue(), getObjectType(), accountId, context.createCallContextWithAccountId(account.getId(), createdBy, reason,
+                    comment, request).getCreatedDate()));
+        }
+        customFieldUserApi.addCustomFields(newCustomFields,context.createCallContextWithAccountId(account.getId(), createdBy, reason,
                 comment, request));
-        super.createCustomFields(account.getId(), json.toCustomFieldList(), context.createCallContextWithAccountId(account.getId(), createdBy, reason,
-                comment, request), uriInfo, request);
         return uriBuilder.buildResponse(uriInfo, AccountResource.class, "getCompany", account.getId(), request);
     }
 
@@ -558,7 +576,11 @@ public class AccountResource extends JaxRsResourceBase {
                 "suburb",
                 "uploadFile");
         final List<UUID> uuids = new ArrayList();
+        final List<CustomField> persistantCustomFields  = new ArrayList<CustomField>();
         for (CustomField cf : customFields){
+            if(names.contains(cf.getFieldName())) persistantCustomFields.add(cf);
+        }
+        for (CustomField cf : persistantCustomFields){
             if(names.contains(cf.getFieldName())) uuids.add(cf.getId());
         }
         if (treatNullValueAsReset) {

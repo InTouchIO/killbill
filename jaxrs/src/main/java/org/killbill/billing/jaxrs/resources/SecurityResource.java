@@ -18,6 +18,7 @@
 
 package org.killbill.billing.jaxrs.resources;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -34,6 +35,7 @@ import org.killbill.billing.account.api.AccountUserApi;
 import org.killbill.billing.jaxrs.json.RoleDefinitionJson;
 import org.killbill.billing.jaxrs.json.SubjectJson;
 import org.killbill.billing.jaxrs.json.UserRolesJson;
+import org.killbill.billing.jaxrs.json.UserRolesJsonWithEmailConfig;
 import org.killbill.billing.jaxrs.util.Context;
 import org.killbill.billing.jaxrs.util.JaxrsUriBuilder;
 import org.killbill.billing.payment.api.InvoicePaymentApi;
@@ -115,18 +117,21 @@ public class SecurityResource extends JaxRsResourceBase {
 
     @TimedResource
     @GET
-    @Path("/user")
+    @Path("/subject/info")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON)
-    @ApiOperation(value = "Get user information", response = UserModelDao.class)
+    @ApiOperation(value = "Get Login user information", response = UserModelDao.class)
     @ApiResponses(value = {@ApiResponse(code = 201, message = "User role created successfully")})
-    public Response getByUsername(@QueryParam("username") final String username,
-                                 @HeaderParam(HDR_REASON) final String reason,
+    public Response getByUsername(@HeaderParam(HDR_REASON) final String reason,
                                  @HeaderParam(HDR_COMMENT) final String comment,
                                  @javax.ws.rs.core.Context final HttpServletRequest request,
                                  @javax.ws.rs.core.Context final UriInfo uriInfo) throws SecurityApiException {
-        UserModelDao userModelDao = customSecurityApi.getByUsername(username);
-        return Response.status(Status.OK).entity(userModelDao).build();
+        final Subject subject = SecurityUtils.getSubject();
+        UserModelDao userModelDao = customSecurityApi.getByUsername(subject.getPrincipal().toString());
+        final List<String> roles = securityApi.getUserRoles(subject.getPrincipal().toString(), context.createTenantContextNoAccountId(request));
+        UserRolesJsonWithEmailConfig entity = new UserRolesJsonWithEmailConfig(userModelDao.getName(),userModelDao.getSurname(),userModelDao.getMobileNumber(),userModelDao.getUsername(),
+                "", roles ,userModelDao.getImapUsername(),userModelDao.getImapPassword(),userModelDao.getImapHost());
+        return Response.status(Status.OK).entity(entity).build();
     }
 
     @TimedResource
@@ -162,6 +167,24 @@ public class SecurityResource extends JaxRsResourceBase {
                                        @javax.ws.rs.core.Context final HttpServletRequest request,
                                        @javax.ws.rs.core.Context final UriInfo uriInfo) throws SecurityApiException {
         securityApi.updateUserPassword(username, json.getPassword(), context.createCallContextNoAccountId(createdBy, reason, comment, request));
+        return Response.status(Status.NO_CONTENT).build();
+    }
+
+    @TimedResource
+    @PUT
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON)
+    @Path("/users/{username:" + ANYTHING_PATTERN + "}/emailconfig")
+    @ApiOperation(value = "Update a user's email host configuration")
+    @ApiResponses(value = {@ApiResponse(code = 204, message = "Successful operation")})
+    public Response updateUserEmailConfig(@PathParam("username") final String username,
+                                       final UserRolesJsonWithEmailConfig json,
+                                       @HeaderParam(HDR_CREATED_BY) final String createdBy,
+                                       @HeaderParam(HDR_REASON) final String reason,
+                                       @HeaderParam(HDR_COMMENT) final String comment,
+                                       @javax.ws.rs.core.Context final HttpServletRequest request,
+                                       @javax.ws.rs.core.Context final UriInfo uriInfo) throws SecurityApiException {
+        customSecurityApi.updateEmailConfig(username,json.getImapUsername(),json.getImapPassword(),json.getImapHost(),createdBy);
         return Response.status(Status.NO_CONTENT).build();
     }
 

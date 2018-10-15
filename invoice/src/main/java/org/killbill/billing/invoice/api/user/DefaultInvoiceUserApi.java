@@ -42,16 +42,7 @@ import org.killbill.billing.catalog.api.CatalogApiException;
 import org.killbill.billing.catalog.api.CatalogInternalApi;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.invoice.InvoiceDispatcher;
-import org.killbill.billing.invoice.api.DryRunArguments;
-import org.killbill.billing.invoice.api.Invoice;
-import org.killbill.billing.invoice.api.InvoiceApiException;
-import org.killbill.billing.invoice.api.InvoiceApiHelper;
-import org.killbill.billing.invoice.api.InvoiceItem;
-import org.killbill.billing.invoice.api.InvoiceItemType;
-import org.killbill.billing.invoice.api.InvoicePayment;
-import org.killbill.billing.invoice.api.InvoiceStatus;
-import org.killbill.billing.invoice.api.InvoiceUserApi;
-import org.killbill.billing.invoice.api.WithAccountLock;
+import org.killbill.billing.invoice.api.*;
 import org.killbill.billing.invoice.calculator.InvoiceCalculatorUtils;
 import org.killbill.billing.invoice.dao.InvoiceDao;
 import org.killbill.billing.invoice.dao.InvoiceItemModelDao;
@@ -90,7 +81,7 @@ import com.google.inject.Inject;
 
 import static org.killbill.billing.util.entity.dao.DefaultPaginationHelper.getEntityPaginationNoException;
 
-public class DefaultInvoiceUserApi implements InvoiceUserApi {
+public class DefaultInvoiceUserApi implements InvoiceUserApi , CustomInvoiceUserApi {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultInvoiceUserApi.class);
 
@@ -699,5 +690,20 @@ public class DefaultInvoiceUserApi implements InvoiceUserApi {
         if (amountPaid.compareTo(BigDecimal.ZERO) != 0) {
             throw new InvoiceApiException(ErrorCode.CAN_NOT_VOID_INVOICE_THAT_IS_PAID, invoice.getId().toString());
         }
+    }
+
+    /**
+     * @param invoiceItem
+     * @param quantity
+     * @param tenantContext
+     * @throws InvoiceApiException
+     */
+    @Override
+    public void adjustInvoiceItemsQuantityById(final InvoiceItem invoiceItem, final Integer quantity, final String description, final TenantContext tenantContext) throws InvoiceApiException {
+        final InternalTenantContext internalTenantContext = internalCallContextFactory.createInternalTenantContext(invoiceItem.getInvoiceId(), ObjectType.INVOICE, tenantContext);
+
+        final BigDecimal unitAmount = invoiceItem.getAmount().divide(BigDecimal.valueOf(invoiceItem.getQuantity()));
+        BigDecimal amount = unitAmount.multiply(BigDecimal.valueOf(quantity));
+        dao.adjustInvoiceItemsQuantityById(invoiceItem.getId(),quantity,description,amount,internalTenantContext);
     }
 }

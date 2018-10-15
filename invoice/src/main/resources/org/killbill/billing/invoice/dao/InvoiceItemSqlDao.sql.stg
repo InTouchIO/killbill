@@ -85,6 +85,16 @@ updateItemFields() ::= <<
     <AND_CHECK_TENANT("")>;
 >>
 
+adjustInvoiceItemsQuantityById() ::= <<
+    UPDATE <tableName()>
+    SET amount = :amount
+    , quantity = :quantity
+    , description = :description
+    ,item_details = :itemDetails
+    WHERE id = :id
+    <AND_CHECK_TENANT("")>;
+>>
+
 
 getInvoiceItemsByParentInvoice() ::= <<
   SELECT <allTableFields(("items."))>

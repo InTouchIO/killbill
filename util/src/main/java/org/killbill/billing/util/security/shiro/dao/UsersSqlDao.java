@@ -46,6 +46,14 @@ public interface UsersSqlDao extends Transactional<UsersSqlDao> {
                                @Bind("updatedBy") String updatedBy);
 
     @SqlUpdate
+    public void updateEmailConfig(@Bind("username") String username,
+                                 @Bind("imapUsername") String imapUsername,
+                                 @Bind("imapPassword") String imapPassword,
+                                 @Bind("imapHost") String imapHost,
+                                 @Bind("updatedDate") Date updatedDate,
+                                 @Bind("updatedBy") String updatedBy);
+
+    @SqlUpdate
     public void invalidate(@Bind("username") String username,
                            @Bind("updatedDate") Date updatedDate,
                            @Bind("updatedBy") String updatedBy);

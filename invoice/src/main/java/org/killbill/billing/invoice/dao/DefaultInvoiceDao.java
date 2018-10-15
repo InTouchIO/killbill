@@ -79,6 +79,7 @@ import org.killbill.bus.api.BusEvent;
 import org.killbill.bus.api.PersistentBus;
 import org.killbill.bus.api.PersistentBus.EventBusException;
 import org.killbill.clock.Clock;
+import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.IDBI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1256,6 +1257,30 @@ public class DefaultInvoiceDao extends EntityDaoBase<InvoiceModelDao, Invoice, I
             }
         });
     }
+
+    /**
+     * @param invoiceItemId
+     * @param quantity
+     * @param amount
+     * @param context
+     * @throws InvoiceApiException
+     */
+    @Override
+    public void adjustInvoiceItemsQuantityById(final UUID invoiceItemId, final Integer quantity, final String description, final BigDecimal amount, final InternalTenantContext context) throws InvoiceApiException {
+        transactionalSqlDao.execute(false, InvoiceApiException.class, new EntitySqlDaoTransactionWrapper<Void>() {
+            @Override
+            public Void inTransaction(final EntitySqlDaoWrapperFactory entitySqlDaoWrapperFactory) throws Exception {
+                /* Alternate method incase proxy gives null pointer exception.*/
+                final Handle handle = entitySqlDaoWrapperFactory.getHandle();
+                InvoiceItemSqlDao invoiceItem = handle.attach(InvoiceItemSqlDao.class);
+                invoiceItem.adjustInvoiceItemsQuantityById(invoiceItemId.toString(), amount, quantity, description, "",context);
+                /*InvoiceItemSqlDao invoiceItem = entitySqlDaoWrapperFactory.become(InvoiceItemSqlDao.class);
+                invoiceItem.updateItemFields1(invoiceItemId.toString(), amount, quantity, "manually overridden", "",context);*/
+                return null;
+            }
+        });
+    }
+
 
     @Override
     public void transferChildCreditToParent(final Account childAccount, final InternalCallContext childAccountContext) throws InvoiceApiException {

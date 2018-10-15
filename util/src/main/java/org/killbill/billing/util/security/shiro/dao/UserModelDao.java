@@ -33,6 +33,9 @@ public class UserModelDao {
     private String createdBy;
     private DateTime updatedDate;
     private String updatedBy;
+    private String imapUsername;
+    private String imapPassword;
+    private String imapHost;
 
     public UserModelDao() {
     }
@@ -166,5 +169,29 @@ public class UserModelDao {
 
     public void setMobileNumber(final String mobileNumber) {
         this.mobileNumber = mobileNumber;
+    }
+
+    public String getImapUsername() {
+        return imapUsername;
+    }
+
+    public void setImapUsername(String imapUsername) {
+        this.imapUsername = imapUsername;
+    }
+
+    public String getImapPassword() {
+        return imapPassword;
+    }
+
+    public void setImapPassword(String imapPassword) {
+        this.imapPassword = imapPassword;
+    }
+
+    public String getImapHost() {
+        return imapHost;
+    }
+
+    public void setImapHost(String imapHost) {
+        this.imapHost = imapHost;
     }
 }
