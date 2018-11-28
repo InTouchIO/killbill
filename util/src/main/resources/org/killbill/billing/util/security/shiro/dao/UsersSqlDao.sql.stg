@@ -93,9 +93,12 @@ username = :username
 
 updateEmailConfig() ::= <<
 update <tableName()>
-set imap_username = :imapUsername
-, imap_password = :imapPassword
-, imap_host = :imapHost
+set name = coalesce(:name, name)
+, surname = coalesce(:surname, surname)
+, mobile_number = coalesce(:mobileNumber, mobile_number)
+, imap_username = coalesce(:imapUsername, imap_username)
+, imap_password = coalesce(:imapPassword, imap_password)
+, imap_host = coalesce(:imapHost, imap_host)
 , updated_date = :updatedDate
 , updated_by = :updatedBy
 where username = :username

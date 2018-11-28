@@ -47,6 +47,9 @@ public interface UsersSqlDao extends Transactional<UsersSqlDao> {
 
     @SqlUpdate
     public void updateEmailConfig(@Bind("username") String username,
+                                 @Bind("name") String name,
+                                 @Bind("surname") String surname,
+                                 @Bind("mobileNumber") String mobileNumber,
                                  @Bind("imapUsername") String imapUsername,
                                  @Bind("imapPassword") String imapPassword,
                                  @Bind("imapHost") String imapHost,

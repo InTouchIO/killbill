@@ -174,8 +174,8 @@ public class SecurityResource extends JaxRsResourceBase {
     @PUT
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON)
-    @Path("/users/{username:" + ANYTHING_PATTERN + "}/emailconfig")
-    @ApiOperation(value = "Update a user's email host configuration")
+    @Path("/users/{username:" + ANYTHING_PATTERN + "}/details")
+    @ApiOperation(value = "Update a user's details.")
     @ApiResponses(value = {@ApiResponse(code = 204, message = "Successful operation")})
     public Response updateUserEmailConfig(@PathParam("username") final String username,
                                        final UserRolesJsonWithEmailConfig json,
@@ -184,7 +184,7 @@ public class SecurityResource extends JaxRsResourceBase {
                                        @HeaderParam(HDR_COMMENT) final String comment,
                                        @javax.ws.rs.core.Context final HttpServletRequest request,
                                        @javax.ws.rs.core.Context final UriInfo uriInfo) throws SecurityApiException {
-        customSecurityApi.updateEmailConfig(username,json.getImapUsername(),json.getImapPassword(),json.getImapHost(),createdBy);
+        customSecurityApi.updateEmailConfig(username,json.getName(),json.getSurname(),json.getMobileNumber(),json.getImapUsername(),json.getImapPassword(),json.getImapHost(),createdBy);
         return Response.status(Status.NO_CONTENT).build();
     }
 

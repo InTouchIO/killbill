@@ -43,5 +43,5 @@ public interface UserDao {
 
     public UserModelDao getByUsername(String username) throws SecurityApiException;
 
-    public void updateEmailConfig( String username, String imapUsername, String imapPassword, String imapHost, String createdBy) throws SecurityApiException;
+    public void updateEmailConfig( String username, String name, String surname, String mobileNumber, String imapUsername, String imapPassword, String imapHost, String createdBy) throws SecurityApiException;
 }

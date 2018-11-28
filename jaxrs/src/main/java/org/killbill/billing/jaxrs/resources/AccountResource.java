@@ -18,17 +18,11 @@
 
 package org.killbill.billing.jaxrs.resources;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -38,21 +32,13 @@ import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import org.joda.time.LocalDate;
 import org.killbill.billing.ErrorCode;
 import org.killbill.billing.ObjectType;
@@ -82,6 +68,7 @@ import org.killbill.billing.invoice.api.InvoicePayment;
 import org.killbill.billing.invoice.api.InvoiceUserApi;
 import org.killbill.billing.jaxrs.JaxrsExecutors;
 import org.killbill.billing.jaxrs.json.*;
+import org.killbill.billing.jaxrs.util.AccountAdditional;
 import org.killbill.billing.jaxrs.util.Context;
 import org.killbill.billing.jaxrs.util.JaxrsUriBuilder;
 import org.killbill.billing.overdue.api.OverdueApi;
@@ -116,6 +103,7 @@ import org.killbill.billing.util.config.definition.JaxrsConfig;
 import org.killbill.billing.util.config.definition.PaymentConfig;
 import org.killbill.billing.util.customfield.CustomField;
 import org.killbill.billing.util.customfield.StringCustomField;
+import org.killbill.billing.util.entity.Entity;
 import org.killbill.billing.util.entity.Pagination;
 import org.killbill.billing.util.tag.ControlTagType;
 import org.killbill.billing.util.tag.Tag;
@@ -214,7 +202,7 @@ public class AccountResource extends JaxRsResourceBase {
     @GET
     @Path("company/{accountId:" + UUID_PATTERN + "}")
     @Produces(APPLICATION_JSON)
-    @ApiOperation(value = "Retrieve an account by id", response = CompanyJson.class)
+    @ApiOperation(value = "Retrieve company detail for an account by id", response = CompanyJson.class)
     @ApiResponses(value = {@ApiResponse(code = 400, message = "Invalid account id supplied"),
                            @ApiResponse(code = 404, message = "Account not found")})
     public Response getCompany(@PathParam("accountId") final UUID accountId,
@@ -231,7 +219,7 @@ public class AccountResource extends JaxRsResourceBase {
 
     @TimedResource
     @GET
-    @Path("/" + "paginationwithbundles")
+    @Path( "/pagination" +"/"+ BUNDLES )
     @Produces(APPLICATION_JSON)
     @ApiOperation(value = "List accounts", response = AccountJson.class, responseContainer = "List")
     @ApiResponses(value = {})
@@ -483,7 +471,7 @@ public class AccountResource extends JaxRsResourceBase {
     @PUT
     @Path("company/{accountId:" + UUID_PATTERN + "}")
     @Produces(APPLICATION_JSON)
-    @ApiOperation(value = "Retrieve an account by id", response = CompanyJson.class)
+    @ApiOperation(value = "put company detail for an account by id", response = CompanyJson.class)
     @ApiResponses(value = {@ApiResponse(code = 400, message = "Invalid account id supplied"),
             @ApiResponse(code = 404, message = "Account not found")})
     public Response updateCompany(final CompanyJson json,@PathParam("accountId") final UUID accountId,
@@ -563,18 +551,7 @@ public class AccountResource extends JaxRsResourceBase {
         final Account data = json.toAccount(accountId);
         final List<CustomFieldJson> customFieldData = json.toCustomFieldJson();
         final List<CustomField> customFields  = customFieldUserApi.getCustomFieldsForObject(accountId, getObjectType(), context.createTenantContextWithAccountId(accountId, request));
-        final List<String> names = ImmutableList.<String>of(
-                "title",
-                "middleName",
-                "lastName",
-                "dob",
-                "gender",
-                "nationality",
-                "idNumber",
-                "landline",
-                "other",
-                "suburb",
-                "uploadFile");
+        final List<String> names = AccountAdditional.enumIteration();
         final List<UUID> uuids = new ArrayList();
         final List<CustomField> persistantCustomFields  = new ArrayList<CustomField>();
         for (CustomField cf : customFields){
@@ -670,6 +647,81 @@ public class AccountResource extends JaxRsResourceBase {
             }
         }
         return Response.status(Status.NO_CONTENT).build();
+    }
+
+    @TimedResource
+    @GET
+    @Path( "/pagination" +"/"+ TIMELINE )
+    @Produces(APPLICATION_JSON)
+    @ApiOperation(value = "List accounts", response = AccountJson.class, responseContainer = "List")
+    @ApiResponses(value = {})
+    public Response getAccountsWithTimeline(@QueryParam(QUERY_SEARCH_OFFSET) @DefaultValue("0") final Long offset,
+                                           @QueryParam(QUERY_SEARCH_LIMIT) @DefaultValue("100") final Long limit,
+                                           @QueryParam(QUERY_BUNDLES_FILTER) final String bundlesFilter,
+                                           @QueryParam(QUERY_ACCOUNT_WITH_BALANCE) @DefaultValue("false") final Boolean accountWithBalance,
+                                           @QueryParam(QUERY_ACCOUNT_WITH_BALANCE_AND_CBA) @DefaultValue("false") final Boolean accountWithBalanceAndCBA,
+                                           @QueryParam(QUERY_AUDIT) @DefaultValue("NONE") final AuditMode auditMode,
+                                           @javax.ws.rs.core.Context final HttpServletRequest request) throws AccountApiException, SubscriptionApiException, InvoiceApiException, PaymentApiException, CatalogApiException {
+        final TenantContext tenantContext = context.createTenantContextNoAccountId(request);
+        final Pagination<Account> accounts = accountUserApi.getAccounts(offset, limit, tenantContext);
+        final URI nextPageUri = uriBuilder.nextPage(AccountResource.class, "getAccounts", accounts.getNextOffset(), limit, ImmutableMap.<String, String>of(QUERY_ACCOUNT_WITH_BALANCE, accountWithBalance.toString(),
+                QUERY_ACCOUNT_WITH_BALANCE_AND_CBA, accountWithBalanceAndCBA.toString(),
+                QUERY_AUDIT, auditMode.getLevel().toString()));
+        List<AccountTimelineJson> accountTimelineJsons = new ArrayList<AccountTimelineJson>();
+        for(final Account account : accounts){
+            final Callable<List<SubscriptionBundle>> bundlesCallable = new Callable<List<SubscriptionBundle>>() {
+                @Override
+                public List<SubscriptionBundle> call() throws Exception {
+                    return subscriptionApi.getSubscriptionBundlesForAccountId(account.getId(), tenantContext);
+                }
+            };
+            final Callable<List<Invoice>> invoicesCallable = new Callable<List<Invoice>>() {
+                @Override
+                public List<Invoice> call() throws Exception {
+                    return invoiceApi.getInvoicesByAccount(account.getId(), false, false, tenantContext);
+                }
+            };
+            final Callable<List<InvoicePayment>> invoicePaymentsCallable = new Callable<List<InvoicePayment>>() {
+                @Override
+                public List<InvoicePayment> call() throws Exception {
+                    return invoicePaymentApi.getInvoicePaymentsByAccount(account.getId(), tenantContext);
+                }
+            };
+            final Callable<List<Payment>> paymentsCallable = new Callable<List<Payment>>() {
+                @Override
+                public List<Payment> call() throws Exception {
+                    return paymentApi.getAccountPayments(account.getId(), false, false, ImmutableList.<PluginProperty>of(), tenantContext);
+                }
+            };
+            final Callable<AccountAuditLogs> auditsCallable = new Callable<AccountAuditLogs>() {
+                @Override
+                public AccountAuditLogs call() throws Exception {
+                    return auditUserApi.getAccountAuditLogs(account.getId(), auditMode.getLevel(), tenantContext);
+                }
+            };
+
+            final AccountTimelineJson json;
+
+            List<Invoice> invoices = new ArrayList<Invoice>();
+            List<SubscriptionBundle> bundles = new ArrayList<SubscriptionBundle>();
+            List<InvoicePayment> invoicePayments = new ArrayList<InvoicePayment>();
+            List<Payment> payments = new ArrayList<Payment>();
+            AccountAuditLogs accountAuditLogs = null;
+            invoices.addAll( runCallable("invoices", invoicesCallable) );
+            payments.addAll( runCallable("payments", paymentsCallable));
+            bundles.addAll( runCallable("bundles", bundlesCallable) );
+            accountAuditLogs = runCallable("accountAuditLogs", auditsCallable);
+            accountTimelineJsons.add( new AccountTimelineJson(account, invoices, payments, invoicePayments, bundles, accountAuditLogs) );
+        }
+
+        return Response.status(Status.OK)
+                .entity(accountTimelineJsons)
+                .header(HDR_PAGINATION_CURRENT_OFFSET, accounts.getCurrentOffset())
+                .header(HDR_PAGINATION_NEXT_OFFSET, accounts.getNextOffset())
+                .header(HDR_PAGINATION_TOTAL_NB_RECORDS, accounts.getTotalNbRecords())
+                .header(HDR_PAGINATION_MAX_NB_RECORDS, accounts.getMaxNbRecords())
+                .header(HDR_PAGINATION_NEXT_PAGE_URI, nextPageUri)
+                .build();
     }
 
     @TimedResource

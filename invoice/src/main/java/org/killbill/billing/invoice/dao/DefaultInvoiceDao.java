@@ -1273,7 +1273,7 @@ public class DefaultInvoiceDao extends EntityDaoBase<InvoiceModelDao, Invoice, I
                 /* Alternate method incase proxy gives null pointer exception.*/
                 final Handle handle = entitySqlDaoWrapperFactory.getHandle();
                 InvoiceItemSqlDao invoiceItem = handle.attach(InvoiceItemSqlDao.class);
-                invoiceItem.adjustInvoiceItemsQuantityById(invoiceItemId.toString(), amount, quantity, description, "",context);
+                invoiceItem.adjustInvoiceItemsQuantityById(invoiceItemId.toString(), amount, quantity, description, null,context);
                 /*InvoiceItemSqlDao invoiceItem = entitySqlDaoWrapperFactory.become(InvoiceItemSqlDao.class);
                 invoiceItem.updateItemFields1(invoiceItemId.toString(), amount, quantity, "manually overridden", "",context);*/
                 return null;

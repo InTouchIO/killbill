@@ -90,7 +90,7 @@ adjustInvoiceItemsQuantityById() ::= <<
     SET amount = :amount
     , quantity = :quantity
     , description = :description
-    ,item_details = :itemDetails
+    ,item_details = coalesce(:itemDetails, item_details)
     WHERE id = :id
     <AND_CHECK_TENANT("")>;
 >>

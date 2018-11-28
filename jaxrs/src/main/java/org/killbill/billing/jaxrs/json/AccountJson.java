@@ -29,6 +29,7 @@ import org.killbill.billing.ObjectType;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.account.api.MutableAccountData;
 import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.jaxrs.util.AccountAdditional;
 import org.killbill.billing.util.audit.AccountAuditLogs;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -79,6 +80,8 @@ public class AccountJson extends JsonBase {
     private String other;
     private String suburb;
     private String uploadFile;
+    private String customPhones;
+    private String accountMatters;
 
 
 
@@ -205,7 +208,9 @@ public class AccountJson extends JsonBase {
                        @JsonProperty("landline") @Nullable final String landline,
                        @JsonProperty("other") @Nullable final String other,
                        @JsonProperty("suburb") @Nullable final String suburb,
-                       @JsonProperty("uploadFile") @Nullable final String uploadFile) {
+                       @JsonProperty("uploadFile") @Nullable final String uploadFile,
+                       @JsonProperty("customPhones") @Nullable final String customPhones,
+                       @JsonProperty("accountMatters") @Nullable final String accountMatters) {
         super(auditLogs);
         this.accountBalance = accountBalance;
         this.externalKey = externalKey;
@@ -246,7 +251,8 @@ public class AccountJson extends JsonBase {
         this.other = other;
         this.suburb = suburb;
         this.uploadFile = uploadFile;
-
+        this.customPhones = customPhones;
+        this.accountMatters = accountMatters;
     }
 
     public Account toAccount(@Nullable final UUID accountId) {
@@ -404,17 +410,19 @@ public class AccountJson extends JsonBase {
 
     public List<CustomFieldJson> toCustomFieldJson(){
         Map<String,String> customDataMap = new HashMap<String,String>();
-        customDataMap.put("title",this.getTitle());
-        customDataMap.put("middleName",this.getMiddleName() );
-        customDataMap.put("lastName",this.getLastName());
-        customDataMap.put("dob",this.getDob());
-        customDataMap.put("gender",this.getGender());
-        customDataMap.put("nationality",this.getNationality());
-        customDataMap.put("idNumber",this.getIdNumber());
-        customDataMap.put("landline",this.getLandline());
-        customDataMap.put("other",this.getOther());
-        customDataMap.put("suburb",this.getSuburb());
-        customDataMap.put("uploadFile",this.getUploadFile());
+        customDataMap.put(AccountAdditional.title,this.getTitle());
+        customDataMap.put(AccountAdditional.middleName,this.getMiddleName() );
+        customDataMap.put(AccountAdditional.lastName,this.getLastName());
+        customDataMap.put(AccountAdditional.dob,this.getDob());
+        customDataMap.put(AccountAdditional.gender,this.getGender());
+        customDataMap.put(AccountAdditional.nationality,this.getNationality());
+        customDataMap.put(AccountAdditional.idNumber,this.getIdNumber());
+        customDataMap.put(AccountAdditional.landline,this.getLandline());
+        customDataMap.put(AccountAdditional.other,this.getOther());
+        customDataMap.put(AccountAdditional.suburb,this.getSuburb());
+        customDataMap.put(AccountAdditional.uploadFile,this.getUploadFile());
+        customDataMap.put(AccountAdditional.customPhones,this.getCustomPhones());
+
         final List<CustomFieldJson> customFields = new ArrayList<CustomFieldJson>();
         for (Map.Entry<String, String> e : customDataMap.entrySet()) {
             if(notNullAndNotEmpty(e.getValue())) customFields.add(new CustomFieldJson(null,null, ObjectType.ACCOUNT,e.getKey(),e.getValue(),new ArrayList<AuditLogJson>()));
@@ -427,17 +435,19 @@ public class AccountJson extends JsonBase {
         for (CustomField cf : customFields){
             cfMap.put(cf.getFieldName(),cf.getFieldValue());
         }
-        this.setTitle(cfMap.get("title"));
-        this.setMiddleName(cfMap.get("middleName"));
-        this.setLastName(cfMap.get("lastName"));
-        this.setDob(cfMap.get("dob"));
-        this.setGender(cfMap.get("gender"));
-        this.setNationality(cfMap.get("nationality"));
-        this.setIdNumber(cfMap.get("idNumber"));
-        this.setLandline(cfMap.get("landline"));
-        this.setOther(cfMap.get("other"));
-        this.setSuburb(cfMap.get("suburb"));
-        this.setUploadFile(cfMap.get("uploadFile"));
+        this.setTitle(cfMap.get(AccountAdditional.title));
+        this.setMiddleName(cfMap.get(AccountAdditional.middleName));
+        this.setLastName(cfMap.get(AccountAdditional.lastName));
+        this.setDob(cfMap.get(AccountAdditional.dob));
+        this.setGender(cfMap.get(AccountAdditional.gender));
+        this.setNationality(cfMap.get(AccountAdditional.nationality));
+        this.setIdNumber(cfMap.get(AccountAdditional.idNumber));
+        this.setLandline(cfMap.get(AccountAdditional.landline));
+        this.setOther(cfMap.get(AccountAdditional.other));
+        this.setSuburb(cfMap.get(AccountAdditional.suburb));
+        this.setUploadFile(cfMap.get(AccountAdditional.uploadFile));
+        this.setCustomPhones(cfMap.get(AccountAdditional.customPhones));
+        this.setAccountMatters(cfMap.get(AccountAdditional.accountMatters));
         return this;
     }
 
@@ -446,17 +456,18 @@ public class AccountJson extends JsonBase {
         for (CustomField cf : customFields){
             cfMap.put(cf.getFieldName(),cf.getFieldValue());
         }
-        accountJson.setTitle(cfMap.get("title"));
-        accountJson.setMiddleName(cfMap.get("middleName"));
-        accountJson.setLastName(cfMap.get("lastName"));
-        accountJson.setDob(cfMap.get("dob"));
-        accountJson.setGender(cfMap.get("gender"));
-        accountJson.setNationality(cfMap.get("nationality"));
-        accountJson.setIdNumber(cfMap.get("idNumber"));
-        accountJson.setLandline(cfMap.get("landline"));
-        accountJson.setOther(cfMap.get("other"));
-        accountJson.setSuburb(cfMap.get("suburb"));
-        accountJson.setUploadFile(cfMap.get("uploadFile"));
+        accountJson.setTitle(cfMap.get(AccountAdditional.title));
+        accountJson.setMiddleName(cfMap.get(AccountAdditional.middleName));
+        accountJson.setLastName(cfMap.get(AccountAdditional.lastName));
+        accountJson.setDob(cfMap.get(AccountAdditional.dob));
+        accountJson.setGender(cfMap.get(AccountAdditional.gender));
+        accountJson.setNationality(cfMap.get(AccountAdditional.nationality));
+        accountJson.setIdNumber(cfMap.get(AccountAdditional.idNumber));
+        accountJson.setLandline(cfMap.get(AccountAdditional.landline));
+        accountJson.setOther(cfMap.get(AccountAdditional.other));
+        accountJson.setSuburb(cfMap.get(AccountAdditional.suburb));
+        accountJson.setCustomPhones(cfMap.get(AccountAdditional.customPhones));
+        accountJson.setAccountMatters(cfMap.get(AccountAdditional.accountMatters));
         return accountJson;
     }
 
@@ -653,6 +664,22 @@ public class AccountJson extends JsonBase {
 
     public void setIdNumber(String idNumber) {
         this.idNumber = idNumber;
+    }
+
+    public String getCustomPhones() {
+        return customPhones;
+    }
+
+    public void setCustomPhones(String customPhones) {
+        this.customPhones = customPhones;
+    }
+
+    public String getAccountMatters() {
+        return accountMatters;
+    }
+
+    public void setAccountMatters(String accountMatters) {
+        this.accountMatters = accountMatters;
     }
 
     @Override

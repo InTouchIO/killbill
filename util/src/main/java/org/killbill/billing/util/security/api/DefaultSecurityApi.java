@@ -352,7 +352,7 @@ public class DefaultSecurityApi implements SecurityApi, CustomSecurityApi {
      * @throws SecurityApiException
      */
     @Override
-    public void updateEmailConfig(String username, String imapUsername, String imapPassword, String imapHost, String createdBy) throws SecurityApiException {
-        userDao.updateEmailConfig( username,  imapUsername,  imapPassword,  imapHost,  createdBy);
+    public void updateEmailConfig(String username, String name, String surname, String mobileNumber, String imapUsername, String imapPassword, String imapHost, String createdBy) throws SecurityApiException {
+        userDao.updateEmailConfig( username, name, surname, mobileNumber,  imapUsername,  imapPassword,  imapHost,  createdBy);
     }
 }
