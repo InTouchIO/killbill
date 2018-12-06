@@ -18,8 +18,6 @@
 
 package org.killbill.billing.jaxrs.resources;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.*;
@@ -35,10 +33,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 
-import com.fasterxml.jackson.core.JsonGenerator;
+import com.google.common.collect.*;
 import org.joda.time.LocalDate;
 import org.killbill.billing.ErrorCode;
 import org.killbill.billing.ObjectType;
@@ -103,7 +100,7 @@ import org.killbill.billing.util.config.definition.JaxrsConfig;
 import org.killbill.billing.util.config.definition.PaymentConfig;
 import org.killbill.billing.util.customfield.CustomField;
 import org.killbill.billing.util.customfield.StringCustomField;
-import org.killbill.billing.util.entity.Entity;
+import org.killbill.billing.util.entity.DefaultPagination;
 import org.killbill.billing.util.entity.Pagination;
 import org.killbill.billing.util.tag.ControlTagType;
 import org.killbill.billing.util.tag.Tag;
@@ -116,10 +113,6 @@ import org.killbill.notificationq.api.NotificationQueueService;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.swagger.annotations.Api;
@@ -231,7 +224,7 @@ public class AccountResource extends JaxRsResourceBase {
                                 @QueryParam(QUERY_AUDIT) @DefaultValue("NONE") final AuditMode auditMode,
                                 @javax.ws.rs.core.Context final HttpServletRequest request) throws AccountApiException , SubscriptionApiException {
         final TenantContext tenantContext = context.createTenantContextNoAccountId(request);
-        final Pagination<Account> accounts = accountUserApi.getAccounts(offset, limit, tenantContext);
+        final Pagination<Account> accounts = removeBlockAccount(accountUserApi.getAccounts(offset, limit, tenantContext),limit,tenantContext);
         final URI nextPageUri = uriBuilder.nextPage(AccountResource.class, "getAccounts", accounts.getNextOffset(), limit, ImmutableMap.<String, String>of(QUERY_ACCOUNT_WITH_BALANCE, accountWithBalance.toString(),
                                                                                                                                                            QUERY_ACCOUNT_WITH_BALANCE_AND_CBA, accountWithBalanceAndCBA.toString(),
                                                                                                                                                            QUERY_AUDIT, auditMode.getLevel().toString()));
@@ -254,6 +247,8 @@ public class AccountResource extends JaxRsResourceBase {
                                                 nextPageUri
                                                );
     }
+
+
 
     private Collection<BundleJson> getBundles(final Account account, final TenantContext tenantContext,final AccountAuditLogs accountAuditLogs, final String bundlesFilter) throws SubscriptionApiException {
         final List<SubscriptionBundle> bundles = subscriptionApi.getSubscriptionBundlesForAccountId(account.getId(), tenantContext);
@@ -285,9 +280,10 @@ public class AccountResource extends JaxRsResourceBase {
                                 @QueryParam(QUERY_ACCOUNT_WITH_BALANCE) @DefaultValue("false") final Boolean accountWithBalance,
                                 @QueryParam(QUERY_ACCOUNT_WITH_BALANCE_AND_CBA) @DefaultValue("false") final Boolean accountWithBalanceAndCBA,
                                 @QueryParam(QUERY_AUDIT) @DefaultValue("NONE") final AuditMode auditMode,
-                                @javax.ws.rs.core.Context final HttpServletRequest request) throws AccountApiException {
+                                @javax.ws.rs.core.Context final HttpServletRequest request) throws AccountApiException, EntitlementApiException {
         final TenantContext tenantContext = context.createTenantContextNoAccountId(request);
-        final Pagination<Account> accounts = accountUserApi.getAccounts(offset, limit, tenantContext);
+        final Pagination<Account> accounts = removeBlockAccount(accountUserApi.getAccounts(offset, limit, tenantContext),limit,tenantContext);
+
         final URI nextPageUri = uriBuilder.nextPage(AccountResource.class, "getAccounts", accounts.getNextOffset(), limit, ImmutableMap.<String, String>of(QUERY_ACCOUNT_WITH_BALANCE, accountWithBalance.toString(),
                 QUERY_ACCOUNT_WITH_BALANCE_AND_CBA, accountWithBalanceAndCBA.toString(),
                 QUERY_AUDIT, auditMode.getLevel().toString()));
@@ -302,6 +298,54 @@ public class AccountResource extends JaxRsResourceBase {
                 },
                 nextPageUri
         );
+    }
+
+    @TimedResource
+    @GET
+    @Path("/" + PAGINATION+"V2")
+    @Produces(APPLICATION_JSON)
+    @ApiOperation(value = "List accounts", response = AccountJson.class, responseContainer = "List")
+    @ApiResponses(value = {})
+    public Response getAccountsV2(@QueryParam(QUERY_SEARCH_OFFSET) @DefaultValue("0") final Long offset,
+                                @QueryParam(QUERY_SEARCH_LIMIT) @DefaultValue("100") final Long limit,
+                                @QueryParam(QUERY_ACCOUNT_WITH_BALANCE) @DefaultValue("false") final Boolean accountWithBalance,
+                                @QueryParam(QUERY_ACCOUNT_WITH_BALANCE_AND_CBA) @DefaultValue("false") final Boolean accountWithBalanceAndCBA,
+                                @QueryParam(QUERY_AUDIT) @DefaultValue("NONE") final AuditMode auditMode,
+                                @javax.ws.rs.core.Context final HttpServletRequest request) throws AccountApiException, EntitlementApiException {
+        final TenantContext tenantContext = context.createTenantContextNoAccountId(request);
+        final Pagination<Account> accounts = removeBlockAccount(accountUserApi.getAccounts(offset, limit, tenantContext),limit,tenantContext);
+
+        final URI nextPageUri = uriBuilder.nextPage(AccountResource.class, "getAccounts", accounts.getNextOffset(), limit, ImmutableMap.<String, String>of(QUERY_ACCOUNT_WITH_BALANCE, accountWithBalance.toString(),
+                QUERY_ACCOUNT_WITH_BALANCE_AND_CBA, accountWithBalanceAndCBA.toString(),
+                QUERY_AUDIT, auditMode.getLevel().toString()));
+        return buildStreamingPaginationResponse(accounts,
+                new Function<Account, AccountJson>() {
+                    @Override
+                    public AccountJson apply(final Account account) {
+                        final AccountAuditLogs accountAuditLogs = auditUserApi.getAccountAuditLogs(account.getId(), auditMode.getLevel(), tenantContext);
+                        final List<CustomField> customFields  = customFieldUserApi.getCustomFieldsForObject(account.getId(), getObjectType(), context.createTenantContextWithAccountId(account.getId(), request));
+                        return AccountJson.setCustomField(getAccount(account, accountWithBalance, accountWithBalanceAndCBA, accountAuditLogs, tenantContext),customFields);
+                    }
+                },
+                nextPageUri
+        );
+    }
+
+    private Pagination<Account> removeBlockAccount(Pagination<Account> accounts, Long limit, TenantContext tenantContext) {
+        List<Account> accountList = new ArrayList<Account>();
+        for (Account account: accounts){
+            Iterable<BlockingState> blockingStates = null;
+            try {
+                blockingStates = subscriptionApi.getBlockingStates(account.getId(), Arrays.asList(BlockingStateType.ACCOUNT), Arrays.asList("account-service"), OrderingType.ASCENDING, SubscriptionApi.ALL_EVENTS, tenantContext);
+            } catch (EntitlementApiException e) {
+                e.printStackTrace();
+            }
+            if(blockingStates != null && blockingStates.iterator().hasNext() ){
+                continue;
+            }
+            accountList.add(account);
+        }
+        return new DefaultPagination<Account>(accounts,limit,accountList.iterator());
     }
 
     @TimedResource
