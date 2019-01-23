@@ -46,6 +46,7 @@
         <module>tenant</module>
         <module>currency</module>
         <module>profiles</module>
+        <module>custom-logic</module>
     </modules>
     <scm>
         <connection>scm:git:git://github.com/killbill/killbill.git</connection>

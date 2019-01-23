@@ -50,10 +50,11 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
+import org.killbill.custom.account.api.CustomerAccountUserApi;
 
 import static org.killbill.billing.util.entity.dao.DefaultPaginationHelper.getEntityPaginationNoException;
 
-public class DefaultAccountUserApi extends DefaultAccountApiBase implements AccountUserApi {
+public class DefaultAccountUserApi extends DefaultAccountApiBase implements AccountUserApi , CustomerAccountUserApi {
 
     private final ImmutableAccountInternalApi immutableAccountInternalApi;
     private final InternalCallContextFactory internalCallContextFactory;
@@ -243,5 +244,24 @@ public class DefaultAccountUserApi extends DefaultAccountApiBase implements Acco
     @Override
     public List<AuditLogWithHistory> getEmailAuditLogsWithHistoryForId(final UUID accountEmailId, final AuditLevel auditLevel, final TenantContext tenantContext) throws AccountApiException {
         return accountDao.getEmailAuditLogsWithHistoryForId(accountEmailId, auditLevel, internalCallContextFactory.createInternalTenantContext(tenantContext.getAccountId(), tenantContext));
+    }
+
+    @Override
+    public Pagination<Account> getNonBlockedAccounts(final Long offset, final Long limit, final TenantContext tenantContext) {
+        return getEntityPaginationNoException(limit,
+                new SourcePaginationBuilder<AccountModelDao, AccountApiException>() {
+                    @Override
+                    public Pagination<AccountModelDao> build() {
+                        return accountDao.getNonBlockedAccounts( offset, limit, internalCallContextFactory.createInternalTenantContextWithoutAccountRecordId(tenantContext));
+                    }
+                },
+                new Function<AccountModelDao, Account>() {
+                    @Override
+                    public Account apply(final AccountModelDao accountModelDao) {
+                        return new DefaultAccount(accountModelDao);
+                    }
+                }
+        );
+
     }
 }

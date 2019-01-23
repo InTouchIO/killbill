@@ -6,6 +6,8 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="custom-logic" />
+        <module name="customlogic" />
         <module name="killbill-account" />
         <module name="killbill-beatrix" />
         <module name="killbill-catalog" />

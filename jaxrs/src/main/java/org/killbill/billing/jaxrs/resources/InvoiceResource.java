@@ -21,21 +21,13 @@ package org.killbill.billing.jaxrs.resources;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.PropertyResourceBundle;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -561,6 +553,9 @@ public class InvoiceResource extends JaxRsResourceBase {
                                           @HeaderParam(HDR_COMMENT) final String comment,
                                           @javax.ws.rs.core.Context final UriInfo uriInfo,
                                           @javax.ws.rs.core.Context final HttpServletRequest request) throws AccountApiException, InvoiceApiException, PaymentApiException {
+        verifyNonNullOrEmpty(externalChargesJson, "Body should be specified");
+        verifyNonNullOrEmpty(accountId, "AccountId needs to be set");
+
         final Iterable<PluginProperty> pluginProperties = extractPluginProperties(pluginPropertiesString);
         final CallContext callContext = context.createCallContextWithAccountId(accountId, createdBy, reason, comment, request);
 
@@ -579,7 +574,20 @@ public class InvoiceResource extends JaxRsResourceBase {
                                                                                                                    }
                                                                                                                }
                                                                                                               );
-        return Response.status(Status.OK).entity(createdExternalChargesJson).build();
+        final List<InvoiceItemJson> responseList = new ArrayList<InvoiceItemJson>();
+/*        List<InvoiceItemJson> taxItemJson = Arrays.asList(new InvoiceItemJson(null,createdExternalCharges.get(0).getInvoiceId(),
+                null,null,null,null,null,null,null,
+                null,null,null,null,null,null,
+                null,null,null,null,
+                BigDecimal.valueOf(10), // Amount of tax
+                BigDecimal.valueOf(0),  // Quantity of tax
+                createdExternalCharges.get(0).getCurrency(),0,null,null,null));
+
+        final List<InvoiceItemJson> createdTaxItemJson = createTaxInvoice(accountId,taxItemJson,pluginPropertiesString,createdBy,
+                reason,comment,request,requestedDateTimeString,uriInfo,autoCommit);
+        responseList.addAll(createdTaxItemJson);*/
+        responseList.addAll(createdExternalChargesJson);
+        return Response.status(Status.OK).entity(responseList).build();
     }
 
     @POST
@@ -603,6 +611,16 @@ public class InvoiceResource extends JaxRsResourceBase {
         verifyNonNullOrEmpty(taxItemJson, "Body should be specified");
         verifyNonNullOrEmpty(accountId, "AccountId needs to be set");
 
+        final List<InvoiceItemJson> createdTaxItemJson = createTaxInvoice(accountId,taxItemJson,pluginPropertiesString,createdBy,
+                reason,comment,request,requestedDateTimeString,uriInfo,autoCommit);
+        return Response.status(Status.OK).entity(createdTaxItemJson).build();
+    }
+
+    private List<InvoiceItemJson> createTaxInvoice(final UUID accountId,final List<InvoiceItemJson> taxItemJson,
+                                                   final List<String> pluginPropertiesString,final String createdBy,
+                                                   final String reason,final String comment,final HttpServletRequest request,
+                                                   final String requestedDateTimeString,final UriInfo uriInfo,
+                                                   final Boolean autoCommit) throws AccountApiException, InvoiceApiException {
         final Iterable<PluginProperty> pluginProperties = extractPluginProperties(pluginPropertiesString);
         final CallContext callContext = context.createCallContextWithAccountId(accountId, createdBy, reason, comment, request);
 
@@ -612,17 +630,15 @@ public class InvoiceResource extends JaxRsResourceBase {
         final LocalDate requestedDate = toLocalDateDefaultToday(account, requestedDateTimeString, callContext);
         final List<InvoiceItem> createdTaxItems = invoiceApi.insertTaxItems(account.getId(), requestedDate, sanitizedTaxItemsJson, autoCommit, pluginProperties, callContext);
 
-        final List<InvoiceItemJson> createdTaxItemJson = Lists.<InvoiceItem, InvoiceItemJson>transform(createdTaxItems,
-                                                                                                       new Function<InvoiceItem, InvoiceItemJson>() {
-                                                                                                           @Override
-                                                                                                           public InvoiceItemJson apply(final InvoiceItem input) {
-                                                                                                               return new InvoiceItemJson(input);
-                                                                                                           }
-                                                                                                       }
-                                                                                                      );
-        return Response.status(Status.OK).entity(createdTaxItemJson).build();
+        return Lists.<InvoiceItem, InvoiceItemJson>transform(createdTaxItems,
+                new Function<InvoiceItem, InvoiceItemJson>() {
+                    @Override
+                    public InvoiceItemJson apply(final InvoiceItem input) {
+                        return new InvoiceItemJson(input);
+                    }
+                }
+        );
     }
-
 
 
     private Iterable<InvoiceItem> validateSanitizeAndTranformInputItems(final Currency accountCurrency, final Iterable<InvoiceItemJson> inputItems) throws InvoiceApiException {

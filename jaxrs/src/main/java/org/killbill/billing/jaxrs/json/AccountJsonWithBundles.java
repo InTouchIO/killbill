@@ -82,7 +82,9 @@ public class AccountJsonWithBundles extends AccountJson {
                 accountJson.getSuburb(),
                 accountJson.getUploadFile(),
                 accountJson.getCustomPhones(),
-                accountJson.getAccountMatters());
+                accountJson.getAccountMatters(),
+                accountJson.getEntityType(),
+                accountJson.getVatNumber());
         this.bundles = bundles;
     }
 

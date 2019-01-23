@@ -29,8 +29,21 @@ public class AccountCustomData {
     private String landline;
     private String other;
     private String suburb;
+    private String entityType;
+    private String vatNumber;
 
-    public AccountCustomData(final String title, final String middleName, final String lastName, final String dob, final String gender, final String nationality, final String iDNumber, final String landline, final String other, final String suburb) {
+    public AccountCustomData(final String title,
+                             final String middleName,
+                             final String lastName,
+                             final String dob,
+                             final String gender,
+                             final String nationality,
+                             final String iDNumber,
+                             final String landline,
+                             final String other,
+                             final String suburb,
+                             final String entityType,
+                             final String vatNumber) {
         this.title = title;
         this.middleName = middleName;
         this.lastName = lastName;
@@ -41,6 +54,8 @@ public class AccountCustomData {
         this.landline = landline;
         this.other = other;
         this.suburb = suburb;
+        this.entityType = entityType;
+        this.vatNumber = vatNumber;
     }
 
     public String getTitle() {
@@ -123,19 +138,37 @@ public class AccountCustomData {
         this.suburb = suburb;
     }
 
+    public String getEntityType() {
+        return entityType;
+    }
+
+    public void setEntityType(String entityType) {
+        this.entityType = entityType;
+    }
+
+    public String getVatNumber() {
+        return vatNumber;
+    }
+
+    public void setVatNumber(String vatNumber) {
+        this.vatNumber = vatNumber;
+    }
+
     @Override
     public String toString() {
         return "AccountCustomData{" +
-               "title='" + title + '\'' +
-               ", middleName='" + middleName + '\'' +
-               ", lastName='" + lastName + '\'' +
-               ", dob='" + dob + '\'' +
-               ", gender='" + gender + '\'' +
-               ", nationality='" + nationality + '\'' +
-               ", iDNumber='" + iDNumber + '\'' +
-               ", landline='" + landline + '\'' +
-               ", other='" + other + '\'' +
-               ", suburb='" + suburb + '\'' +
-               '}';
+                "title='" + title + '\'' +
+                ", middleName='" + middleName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", dob='" + dob + '\'' +
+                ", gender='" + gender + '\'' +
+                ", nationality='" + nationality + '\'' +
+                ", iDNumber='" + iDNumber + '\'' +
+                ", landline='" + landline + '\'' +
+                ", other='" + other + '\'' +
+                ", suburb='" + suburb + '\'' +
+                ", entityType='" + entityType + '\'' +
+                ", vatNumber='" + vatNumber + '\'' +
+                '}';
     }
 }

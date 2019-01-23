@@ -220,8 +220,10 @@
     <logger name="org.killbill.notificationq" level="INFO"/>
     <logger name="org.killbill.queue" level="INFO"/>
 
+
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="MAIN"/>
+        <!--<appender name="SIFT-jdbc-sqlonly" />-->
     </root>
 </configuration>

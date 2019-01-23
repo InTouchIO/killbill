@@ -1,0 +1,287 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<catalog
+	xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='CatalogSchema.xsd'>
+	<effectiveDate>2019-01-04T05:47:38Z</effectiveDate>
+	<catalogName>Usage</catalogName>
+	<recurringBillingMode>IN_ADVANCE</recurringBillingMode>
+	<currencies>
+		<currency>ZAR</currency>
+	</currencies>
+	<units>
+		<unit name="sms-count"/>
+		<unit name="count"/>
+		<unit name="call-per-minute"/>
+		<unit name="per-minute"/>
+		<unit name="kilometres"/>
+	</units>
+	<products>
+		<product name="SMS">
+			<category>BASE</category>
+		</product>
+		<product name="CALL">
+			<category>BASE</category>
+		</product>
+		<product name="MEETING">
+			<category>BASE</category>
+		</product>
+		<product name="TRAVEL">
+			<category>BASE</category>
+		</product>
+		<product name="EMAILS">
+			<category>BASE</category>
+		</product>
+		<product name="AD-HOC">
+			<category>BASE</category>
+		</product>
+	</products>
+	<rules>
+		<changePolicy>
+			<changePolicyCase>
+				<policy>IMMEDIATE</policy>
+			</changePolicyCase>
+		</changePolicy>
+		<changeAlignment>
+			<changeAlignmentCase>
+				<alignment>START_OF_BUNDLE</alignment>
+			</changeAlignmentCase>
+		</changeAlignment>
+		<cancelPolicy>
+			<cancelPolicyCase>
+				<policy>IMMEDIATE</policy>
+			</cancelPolicyCase>
+		</cancelPolicy>
+		<createAlignment>
+			<createAlignmentCase>
+				<alignment>START_OF_BUNDLE</alignment>
+			</createAlignmentCase>
+		</createAlignment>
+		<billingAlignment>
+			<billingAlignmentCase>
+				<alignment>SUBSCRIPTION</alignment>
+			</billingAlignmentCase>
+		</billingAlignment>
+		<priceList>
+			<priceListCase>
+				<toPriceList>DEFAULT</toPriceList>
+			</priceListCase>
+		</priceList>
+	</rules>
+	<plans>
+		<plan name='SMS-DAILY'>
+			<product>SMS</product>
+			<finalPhase type='EVERGREEN'>
+				<duration>
+					<unit>UNLIMITED</unit>
+				</duration>
+				<recurring>
+					<billingPeriod>DAILY</billingPeriod>
+					<recurringPrice></recurringPrice>
+				</recurring>
+				<usages>
+					<usage name='sms-usage-daily' billingMode='IN_ARREAR' usageType='CONSUMABLE'>
+						<billingPeriod>DAILY</billingPeriod>
+						<tiers>
+							<tier>
+								<blocks>
+									<tieredBlock>
+										<unit>sms-count</unit>
+										<size>1</size>
+										<prices>
+											<price>
+												<currency>ZAR</currency>
+												<value>5.8</value>
+											</price>
+										</prices>
+										<max>1000000</max>
+									</tieredBlock>
+								</blocks>
+							</tier>
+						</tiers>
+					</usage>
+				</usages>
+			</finalPhase>
+		</plan>
+		<plan name='CALL-DAILY'>
+			<product>CALL</product>
+			<finalPhase type='EVERGREEN'>
+				<duration>
+					<unit>UNLIMITED</unit>
+				</duration>
+				<recurring>
+					<billingPeriod>DAILY</billingPeriod>
+					<recurringPrice></recurringPrice>
+				</recurring>
+				<usages>
+					<usage name='call-usage-daily' billingMode='IN_ARREAR' usageType='CONSUMABLE'>
+						<billingPeriod>DAILY</billingPeriod>
+						<tiers>
+							<tier>
+								<blocks>
+									<tieredBlock>
+										<unit>call-per-minute</unit>
+										<size>1</size>
+										<prices>
+											<price>
+												<currency>ZAR</currency>
+												<value>2.7</value>
+											</price>
+										</prices>
+										<max>1000000</max>
+									</tieredBlock>
+								</blocks>
+							</tier>
+						</tiers>
+					</usage>
+				</usages>
+			</finalPhase>
+		</plan>
+		<plan name='MEETING-DAILY'>
+			<product>MEETING</product>
+			<finalPhase type='EVERGREEN'>
+				<duration>
+					<unit>UNLIMITED</unit>
+				</duration>
+				<recurring>
+					<billingPeriod>DAILY</billingPeriod>
+					<recurringPrice></recurringPrice>
+				</recurring>
+				<usages>
+					<usage name='meeting-usage-daily' billingMode='IN_ARREAR' usageType='CONSUMABLE'>
+						<billingPeriod>DAILY</billingPeriod>
+						<tiers>
+							<tier>
+								<blocks>
+									<tieredBlock>
+										<unit>per-minute</unit>
+										<size>1</size>
+										<prices>
+											<price>
+												<currency>ZAR</currency>
+												<value>8</value>
+											</price>
+										</prices>
+										<max>1000000</max>
+									</tieredBlock>
+								</blocks>
+							</tier>
+						</tiers>
+					</usage>
+				</usages>
+			</finalPhase>
+		</plan>
+		<plan name='TRAVEL-TIME-DAILY'>
+			<product>TRAVEL</product>
+			<finalPhase type='EVERGREEN'>
+				<duration>
+					<unit>UNLIMITED</unit>
+				</duration>
+				<recurring>
+					<billingPeriod>DAILY</billingPeriod>
+					<recurringPrice></recurringPrice>
+				</recurring>
+				<usages>
+					<usage name='travel-time-usage-daily' billingMode='IN_ARREAR' usageType='CONSUMABLE'>
+						<billingPeriod>DAILY</billingPeriod>
+						<tiers>
+							<tier>
+								<blocks>
+									<tieredBlock>
+										<unit>kilometres</unit>
+										<size>1</size>
+										<prices>
+											<price>
+												<currency>ZAR</currency>
+												<value>15</value>
+											</price>
+										</prices>
+										<max>1000000</max>
+									</tieredBlock>
+								</blocks>
+							</tier>
+						</tiers>
+					</usage>
+				</usages>
+			</finalPhase>
+		</plan>
+		<plan name='EMAILS-DAILY'>
+			<product>EMAILS</product>
+			<finalPhase type='EVERGREEN'>
+				<duration>
+					<unit>UNLIMITED</unit>
+				</duration>
+				<recurring>
+					<billingPeriod>DAILY</billingPeriod>
+					<recurringPrice></recurringPrice>
+				</recurring>
+				<usages>
+					<usage name='emails-usage-daily' billingMode='IN_ARREAR' usageType='CONSUMABLE'>
+						<billingPeriod>DAILY</billingPeriod>
+						<tiers>
+							<tier>
+								<blocks>
+									<tieredBlock>
+										<unit>count</unit>
+										<size>1</size>
+										<prices>
+											<price>
+												<currency>ZAR</currency>
+												<value>5.00</value>
+											</price>
+										</prices>
+										<max>1000000</max>
+									</tieredBlock>
+								</blocks>
+							</tier>
+						</tiers>
+					</usage>
+				</usages>
+			</finalPhase>
+		</plan>
+		<plan name='ADHOC-DAILY'>
+			<product>AD-HOC</product>
+			<finalPhase type='EVERGREEN'>
+				<duration>
+					<unit>UNLIMITED</unit>
+				</duration>
+				<recurring>
+					<billingPeriod>DAILY</billingPeriod>
+					<recurringPrice></recurringPrice>
+				</recurring>
+				<usages>
+					<usage name='ad-hoc-usage-daily' billingMode='IN_ARREAR' usageType='CONSUMABLE'>
+						<billingPeriod>DAILY</billingPeriod>
+						<tiers>
+							<tier>
+								<blocks>
+									<tieredBlock>
+										<unit>per-minute</unit>
+										<size>1</size>
+										<prices>
+											<price>
+												<currency>ZAR</currency>
+												<value>13</value>
+											</price>
+										</prices>
+										<max>1000000</max>
+									</tieredBlock>
+								</blocks>
+							</tier>
+						</tiers>
+					</usage>
+				</usages>
+			</finalPhase>
+		</plan>
+	</plans>
+	<priceLists>
+		<defaultPriceList name="DEFAULT">
+			<plans>
+				<plan>SMS-DAILY</plan>
+				<plan>CALL-DAILY</plan>
+				<plan>MEETING-DAILY</plan>
+				<plan>TRAVEL-TIME-DAILY</plan>
+				<plan>EMAILS-DAILY</plan>
+				<plan>ADHOC-DAILY</plan>
+			</plans>
+		</defaultPriceList>
+	</priceLists>
+</catalog>

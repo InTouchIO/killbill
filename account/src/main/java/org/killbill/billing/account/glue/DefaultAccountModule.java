@@ -33,6 +33,7 @@ import org.killbill.billing.platform.api.KillbillConfigSource;
 import org.killbill.billing.util.audit.dao.AuditDao;
 import org.killbill.billing.util.audit.dao.DefaultAuditDao;
 import org.killbill.billing.util.glue.KillBillModule;
+import org.killbill.custom.account.api.CustomerAccountUserApi;
 
 public class DefaultAccountModule extends KillBillModule implements AccountModule {
 
@@ -50,6 +51,7 @@ public class DefaultAccountModule extends KillBillModule implements AccountModul
     @Override
     public void installAccountUserApi() {
         bind(AccountUserApi.class).to(DefaultAccountUserApi.class).asEagerSingleton();
+        bind(CustomerAccountUserApi.class).to(DefaultAccountUserApi.class).asEagerSingleton();
     }
 
     @Override

@@ -345,4 +345,24 @@ public class DefaultAccountDao extends EntityDaoBase<AccountModelDao, Account, A
             }
         });
     }
+
+    @Override
+    public Pagination<AccountModelDao> getNonBlockedAccounts(final Long offset, final Long limit, InternalTenantContext context) {
+        final String blockingStatesTableName = "blocking_states";
+        return paginationHelper.getPagination(AccountSqlDao.class,
+                new PaginationIteratorBuilder<AccountModelDao, Account, AccountSqlDao>() {
+                    @Override
+                    public Long getCount(final AccountSqlDao accountSqlDao, final InternalTenantContext context) {
+                        return accountSqlDao.getNonBlockedAccountsCount(   context.getTenantRecordId());
+                    }
+
+                    @Override
+                    public Iterator<AccountModelDao> build(final AccountSqlDao accountSqlDao, final Long offset, final Long limit, final Ordering ordering, final InternalTenantContext context) {
+                        return accountSqlDao.getNonBlockedAccounts( offset,  limit, context.getTenantRecordId());
+                    }
+                },
+                offset,
+                limit,
+                context);
+    }
 }

@@ -82,6 +82,8 @@ public class AccountJson extends JsonBase {
     private String uploadFile;
     private String customPhones;
     private String accountMatters;
+    private String entityType;
+    private String vatNumber;
 
 
 
@@ -116,15 +118,15 @@ public class AccountJson extends JsonBase {
 
 
     public AccountJson( final UUID accountId,
-                       final String name,
-                       final Integer firstNameLength,
+                        final String name,
+                        final Integer firstNameLength,
                         final String externalKey,
                         final String email,
                         final Integer billCycleDayLocal,
                         final Currency currency,
                         final UUID parentAccountId,
                         final Boolean isPaymentDelegatedToParent,
-                       final UUID paymentMethodId,
+                        final UUID paymentMethodId,
                         final DateTime referenceTime,
                         final String timeZone,
                         final String address1,
@@ -132,7 +134,7 @@ public class AccountJson extends JsonBase {
                         final String postalCode,
                         final String company,
                         final String city,
-                         final String state,
+                        final String state,
                         final String country,
                         final String locale,
                         final String phone,
@@ -140,7 +142,7 @@ public class AccountJson extends JsonBase {
                         final Boolean isMigrated,
                         final BigDecimal accountBalance,
                         final BigDecimal accountCBA,
-                       final List<AuditLogJson> auditLogs) {
+                        final List<AuditLogJson> auditLogs) {
         super(auditLogs);
         this.accountBalance = accountBalance;
         this.externalKey = externalKey;
@@ -210,7 +212,9 @@ public class AccountJson extends JsonBase {
                        @JsonProperty("suburb") @Nullable final String suburb,
                        @JsonProperty("uploadFile") @Nullable final String uploadFile,
                        @JsonProperty("customPhones") @Nullable final String customPhones,
-                       @JsonProperty("accountMatters") @Nullable final String accountMatters) {
+                       @JsonProperty("accountMatters") @Nullable final String accountMatters,
+                       @JsonProperty("entityType") @Nullable final String entityType,
+                       @JsonProperty("vatNumber") @Nullable final String vatNumber) {
         super(auditLogs);
         this.accountBalance = accountBalance;
         this.externalKey = externalKey;
@@ -250,6 +254,8 @@ public class AccountJson extends JsonBase {
         this.landline = landline;
         this.other = other;
         this.suburb = suburb;
+        this.entityType = entityType;
+        this.vatNumber = vatNumber;
         this.uploadFile = uploadFile;
         this.customPhones = customPhones;
         this.accountMatters = accountMatters;
@@ -422,6 +428,8 @@ public class AccountJson extends JsonBase {
         customDataMap.put(AccountAdditional.suburb,this.getSuburb());
         customDataMap.put(AccountAdditional.uploadFile,this.getUploadFile());
         customDataMap.put(AccountAdditional.customPhones,this.getCustomPhones());
+        customDataMap.put(AccountAdditional.entityType,this.getEntityType());
+        customDataMap.put(AccountAdditional.vatNumber,this.getVatNumber());
 
         final List<CustomFieldJson> customFields = new ArrayList<CustomFieldJson>();
         for (Map.Entry<String, String> e : customDataMap.entrySet()) {
@@ -448,6 +456,8 @@ public class AccountJson extends JsonBase {
         this.setUploadFile(cfMap.get(AccountAdditional.uploadFile));
         this.setCustomPhones(cfMap.get(AccountAdditional.customPhones));
         this.setAccountMatters(cfMap.get(AccountAdditional.accountMatters));
+        this.setEntityType(cfMap.get(AccountAdditional.entityType));
+        this.setVatNumber(cfMap.get(AccountAdditional.vatNumber));
         return this;
     }
 
@@ -468,6 +478,8 @@ public class AccountJson extends JsonBase {
         accountJson.setSuburb(cfMap.get(AccountAdditional.suburb));
         accountJson.setCustomPhones(cfMap.get(AccountAdditional.customPhones));
         accountJson.setAccountMatters(cfMap.get(AccountAdditional.accountMatters));
+        accountJson.setEntityType(cfMap.get(AccountAdditional.entityType));
+        accountJson.setVatNumber(cfMap.get(AccountAdditional.vatNumber));
         return accountJson;
     }
 
@@ -680,6 +692,22 @@ public class AccountJson extends JsonBase {
 
     public void setAccountMatters(String accountMatters) {
         this.accountMatters = accountMatters;
+    }
+
+    public String getEntityType() {
+        return entityType;
+    }
+
+    public void setEntityType(String entityType) {
+        this.entityType = entityType;
+    }
+
+    public String getVatNumber() {
+        return vatNumber;
+    }
+
+    public void setVatNumber(String vatNumber) {
+        this.vatNumber = vatNumber;
     }
 
     @Override

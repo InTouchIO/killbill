@@ -19,6 +19,9 @@ public class AccountAdditional {
     public static final String uploadFile = "uploadFile";
     public static final String customPhones = "customPhones";
     public static final String accountMatters = "accountMatters";
+    public static final String entityType = "entityType";
+    public static final String vatNumber = "vatNumber";
+
 
 
     public static ImmutableList<String> enumIteration() {
@@ -33,6 +36,8 @@ public class AccountAdditional {
                                                 other,
                                                 suburb,
                                                 title,
+                                                entityType,
+                                                vatNumber,
                                                 uploadFile,
                                                 customPhones,
                                                 accountMatters));

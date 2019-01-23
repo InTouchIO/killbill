@@ -436,3 +436,23 @@ where <CHECK_TENANT("t.")>
 limit 1
 ;
 >>
+
+
+getNonBlockedAccountsCount() ::= <<
+select COUNT(*)  from <tableName()> t
+where t.record_id not in (
+SELECT account_record_id FROM blocking_states
+where tenant_record_id = :tenanatRecordId and state = "CLOSE_ACCOUNT"
+) and t.tenant_record_id = :tenanatRecordId;
+>>
+
+getNonBlockedAccounts() ::= <<
+select
+<allTableFields("t.")>
+from <tableName()> t
+where t.record_id not in(
+SELECT account_record_id FROM blocking_states
+where tenant_record_id = :tenanatRecordId and state = "CLOSE_ACCOUNT"
+) and t.tenant_record_id = :tenanatRecordId
+order by t.record_id asc limit :rowCount offset :offset;
+>>

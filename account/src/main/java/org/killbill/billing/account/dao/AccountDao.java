@@ -61,4 +61,5 @@ public interface AccountDao extends EntityDao<AccountModelDao, Account, AccountA
 
     List<AuditLogWithHistory> getEmailAuditLogsWithHistoryForId(UUID accountEmailId, AuditLevel auditLevel, InternalTenantContext context) throws AccountApiException;
 
+    Pagination<AccountModelDao> getNonBlockedAccounts(Long offset, Long limit, InternalTenantContext context);
 }

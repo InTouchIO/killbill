@@ -155,6 +155,8 @@ public interface JaxrsResource {
 
     String PAGINATION = "pagination";
 
+    String NONBLOCKED = "nb";
+
     String ADMIN = "admin";
     String ADMIN_PATH = PREFIX + "/" + ADMIN;
 

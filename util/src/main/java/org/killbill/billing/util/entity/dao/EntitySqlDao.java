@@ -99,4 +99,15 @@ public interface EntitySqlDao<M extends EntityModelDao<E>, E extends Entity> ext
 
     @SqlUpdate
     public void test(@SmartBindBean final InternalTenantContext context);
+
+
+    @SqlQuery
+    @SmartFetchSize(shouldStream = true)
+    public Iterator<M> getNonBlockedAccounts(@Bind("offset") final Long offset,
+                                             @Bind("rowCount") final  Long rowCount,
+                                             @Bind("tenanatRecordId") final  Long tenanatRecordId);
+
+    @SqlQuery
+    @SmartFetchSize(shouldStream = true)
+    public Long getNonBlockedAccountsCount(@Bind("tenanatRecordId") final  Long tenanatRecordId);
 }
